@@ -43,53 +43,41 @@ export const GoogleSignInModal: React.FC<GoogleSignInModalProps> = ({ isOpen, on
   const handleSelectAccount = async (account: { name: string; email: string; avatar?: string }) => {
     setLoadingEmail(account.email);
     try {
-      // Direct call to backend to generate token for Google account
-      const res = await fetch(`${API_BASE}/auth/google/mock?name=${encodeURIComponent(account.name)}&email=${encodeURIComponent(account.email)}&avatarUrl=${encodeURIComponent(account.avatar || '')}`, {
-        redirect: 'manual'
+      // Direct call to backend to authenticate with Google account & 5 TB cloud provisioning
+      const res = await fetch(`${API_BASE}/auth/google/mock`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          name: account.name,
+          email: account.email,
+          avatarUrl: account.avatar || ''
+        })
       });
 
-      // Extract token from redirect URL or JSON
-      const location = res.headers.get('location') || '';
-      let token = '';
-      if (location && location.includes('token=')) {
-        const url = new URL(location, window.location.origin);
-        token = url.searchParams.get('token') || '';
-      } else {
-        // Fallback: direct fetch token
-        const queryParams = new URLSearchParams(window.location.search);
-        token = queryParams.get('token') || '';
-      }
-
-      if (!token) {
-        // Direct API registration/login fallback
-        const directRes = await fetch('http://localhost:5000/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: account.email, password: 'google_user_default_pass' })
-        }).catch(() => null);
-
-        // If not registered yet, we create through mock endpoint
-      }
-
-      // If token retrieved, log in
-      if (token) {
-        await loginWithToken(token);
+      const json = await res.json();
+      if (json.success && json.data?.token) {
+        await loginWithToken(json.data.token);
         success(`Signed in as ${account.name}! 5 TB Storage Ready.`);
         onClose();
         return;
       }
 
-      // Universal client-vault login fallback
-      const fallback = clientVault.googleLogin(account.name, account.email, account.avatar);
-      await loginWithToken(fallback.data.token);
-      success(`Signed in as ${account.name}! 5 TB Storage Ready.`);
-      onClose();
-    } catch {
-      // Universal client-vault login fallback on any network error
-      const fallback = clientVault.googleLogin(account.name, account.email, account.avatar);
-      await loginWithToken(fallback.data.token);
-      success(`Signed in as ${account.name}! 5 TB Storage Ready.`);
-      onClose();
+      throw new Error(json.message || 'Google authentication failed.');
+    } catch (err: any) {
+      console.warn('Google sign-in error:', err);
+      try {
+        const fallback = clientVault.googleLogin(account.name, account.email, account.avatar);
+        await loginWithToken(fallback.data.token);
+        success(`Signed in as ${account.name}! 5 TB Storage Ready.`);
+        onClose();
+      } catch {
+        error(err?.message || 'Failed to sign in with Google');
+      }
+    } finally {
+      setLoadingEmail(null);
     }
   };
 

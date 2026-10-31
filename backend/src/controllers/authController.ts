@@ -116,7 +116,19 @@ export class AuthController {
         avatarUrl: String(avatarUrl)
       });
 
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      // If requested via JSON / API / POST, return direct JSON token
+      if (req.method === 'POST' || req.query.json === 'true' || req.headers.accept?.includes('application/json')) {
+        return res.status(200).json({
+          success: true,
+          message: 'Google authentication successful.',
+          data: {
+            user: result.user,
+            token: result.token
+          }
+        });
+      }
+
+      const frontendUrl = process.env.FRONTEND_URL || 'https://memopix-tau.vercel.app';
       res.redirect(`${frontendUrl}/auth/google/callback?token=${result.token}&name=${encodeURIComponent(result.user.name)}&email=${encodeURIComponent(result.user.email)}`);
     } catch (error) {
       next(error);

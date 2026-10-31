@@ -1,9 +1,10 @@
-﻿{
+{
   "appId": "com.memopix.cloud",
   "appName": "MEMOPIX",
   "webDir": "dist",
   "bundledWebRuntime": false,
   "server": {
+    "url": "https://memopix-tau.vercel.app",
     "androidScheme": "https",
     "cleartext": true
   }

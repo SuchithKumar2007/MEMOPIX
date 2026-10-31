@@ -109,6 +109,7 @@ router.get('/google', (req: Request, res: Response, next: NextFunction) => {
 
 // Mock handler for instant test Google sign-in
 router.get('/google/mock', AuthController.mockGoogleLogin);
+router.post('/google/mock', AuthController.mockGoogleLogin);
 
 // Step 2: Handle real Google callback
 router.get('/google/callback',
