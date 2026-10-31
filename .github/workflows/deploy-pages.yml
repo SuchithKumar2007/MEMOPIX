@@ -1,4 +1,4 @@
-﻿name: Deploy MEMOPIX to GitHub Pages (Permanent Public Link)
+name: Deploy MEMOPIX to GitHub Pages (Permanent Public Link)
 
 on:
   push:
@@ -39,6 +39,8 @@ jobs:
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
