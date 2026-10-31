@@ -167,12 +167,18 @@ export class MediaService {
 
         if (view === 'favorites') {
           where.isFavorite = true;
+        } else if (view === 'photos') {
+          where.mimeType = { startsWith: 'image/' };
         } else if (view === 'videos') {
           where.mimeType = { startsWith: 'video/' };
         } else if (view === 'audio') {
           where.mimeType = { startsWith: 'audio/' };
-        } else if (view === 'documents') {
-          where.category = 'document';
+        } else if (view === 'documents' || view === 'files') {
+          where.NOT = [
+            { mimeType: { startsWith: 'image/' } },
+            { mimeType: { startsWith: 'video/' } },
+            { mimeType: { startsWith: 'audio/' } }
+          ];
         }
       }
     }

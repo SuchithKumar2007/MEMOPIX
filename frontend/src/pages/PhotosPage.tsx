@@ -41,7 +41,29 @@ export const PhotosPage: React.FC<PhotosPageProps> = ({
         limit: 200
       });
       if (res.success && res.data) {
-        setMedia(res.data.items);
+        // Enforce strict photo filtering: only image files belong in Photos
+        const photoOnly = res.data.items.filter((item: MediaItem) => {
+          const mime = (item.mimeType || '').toLowerCase();
+          const name = (item.originalName || item.fileName || '').toLowerCase();
+
+          // Explicit exclusion of audio, video, documents, archives
+          if (
+            mime.startsWith('audio/') ||
+            mime.startsWith('video/') ||
+            mime.startsWith('application/') ||
+            mime.startsWith('text/') ||
+            /\.(mp3|wav|ogg|m4a|aac|flac|wma|opus|mid|midi|mp4|webm|mkv|mov|avi|wmv|3gp|pdf|doc|docx|xls|xlsx|ppt|pptx|txt|zip|rar|tar|gz|7z)$/i.test(name)
+          ) {
+            return false;
+          }
+
+          // Inclusion of images only
+          return (
+            mime.startsWith('image/') ||
+            /\.(jpe?g|png|gif|webp|svg|bmp|heic|heif|tiff?|raw|cr2|nef|arw|dng)$/i.test(name)
+          );
+        });
+        setMedia(photoOnly);
       }
     } catch (err: any) {
       error('Failed to load photos gallery.');

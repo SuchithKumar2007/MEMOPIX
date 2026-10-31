@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ShieldCheck, HardDrive, Sparkles, Film, Image as ImageIcon, Music, Zap, Lock } from 'lucide-react';
 
 interface SplashScreenProps {
@@ -86,7 +86,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
           {/* Logo container card */}
           <div className="relative w-28 h-28 rounded-3xl bg-gradient-to-b from-[#141B2D] via-[#0E1424] to-[#080C16] border border-white/15 shadow-[0_0_40px_rgba(12,142,233,0.35)] flex items-center justify-center p-3.5 backdrop-blur-2xl">
             <img
-              src="/icon-192.png"
+              src="/logo.png"
               alt="MEMOPIX Logo"
               className="w-20 h-20 object-contain drop-shadow-[0_0_25px_rgba(12,142,233,0.7)] transform hover:scale-105 transition-transform duration-300"
             />
