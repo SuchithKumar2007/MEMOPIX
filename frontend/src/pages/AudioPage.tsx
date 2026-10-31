@@ -9,7 +9,9 @@ import {
   FolderPlus,
   Clock,
   Disc3,
-  Heart
+  Heart,
+  GripVertical,
+  RotateCcw
 } from 'lucide-react';
 import { MediaItem, Playlist } from '../types';
 import { mediaApi, playlistApi } from '../services/api';
@@ -44,6 +46,11 @@ export const AudioPage: React.FC<AudioPageProps> = ({
   const [newPlaylistTitle, setNewPlaylistTitle] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
+  // Drag-to-reorder state
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [hasCustomOrder, setHasCustomOrder] = useState(false);
+
   const { error, success } = useToast();
   const { playTrack, currentTrack, isPlaying } = useMusicPlayer();
 
@@ -60,7 +67,30 @@ export const AudioPage: React.FC<AudioPageProps> = ({
       ]);
 
       if (mediaRes.success && mediaRes.data) {
-        setTracks(mediaRes.data.items);
+        const items = mediaRes.data.items;
+        // Apply saved custom order from localStorage
+        const savedOrder = localStorage.getItem('memopix_audio_order');
+        if (savedOrder) {
+          try {
+            const ids: string[] = JSON.parse(savedOrder);
+            const ordered = [...items].sort((a, b) => {
+              const ai = ids.indexOf(a.id);
+              const bi = ids.indexOf(b.id);
+              if (ai === -1 && bi === -1) return 0;
+              if (ai === -1) return 1;
+              if (bi === -1) return -1;
+              return ai - bi;
+            });
+            setTracks(ordered);
+            setHasCustomOrder(true);
+          } catch {
+            setTracks(items);
+            setHasCustomOrder(false);
+          }
+        } else {
+          setTracks(items);
+          setHasCustomOrder(false);
+        }
       }
       if (playlistRes.success && playlistRes.data) {
         setPlaylists(playlistRes.data);
@@ -76,6 +106,41 @@ export const AudioPage: React.FC<AudioPageProps> = ({
     loadAudio();
   }, [searchQuery, reloadTrigger]);
 
+  // ── Drag-to-Reorder Handlers ──────────────────────────────────────────────
+  const handleDragStart = (index: number) => {
+    setDragIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    setDragOverIndex(index);
+  };
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    if (dragIndex === null || dragIndex === dropIndex) {
+      setDragIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+    const newTracks = [...tracks];
+    const [dragged] = newTracks.splice(dragIndex, 1);
+    newTracks.splice(dropIndex, 0, dragged);
+    setTracks(newTracks);
+    const newOrder = newTracks.map(t => t.id);
+    localStorage.setItem('memopix_audio_order', JSON.stringify(newOrder));
+    setHasCustomOrder(true);
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleResetOrder = () => {
+    localStorage.removeItem('memopix_audio_order');
+    setHasCustomOrder(false);
+    loadAudio();
+  };
+
+  // ── Playlist Handlers ─────────────────────────────────────────────────────
   const handleCreatePlaylist = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPlaylistTitle.trim()) return;
@@ -121,7 +186,7 @@ export const AudioPage: React.FC<AudioPageProps> = ({
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-              Music & Audio Player
+              Music &amp; Audio Player
             </h2>
             <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-600 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
               5 TB Cloud
@@ -133,15 +198,27 @@ export const AudioPage: React.FC<AudioPageProps> = ({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {tracks.length > 0 && (
-            <button
-              onClick={() => handlePlayAll(true)}
-              className="px-3.5 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs font-bold rounded-xl active:scale-95 transition-all flex items-center gap-1.5"
-            >
-              <Shuffle className="w-4 h-4 text-purple-500" />
-              <span>Shuffle</span>
-            </button>
+            <>
+              <button
+                onClick={() => handlePlayAll(true)}
+                className="px-3.5 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs font-bold rounded-xl active:scale-95 transition-all flex items-center gap-1.5"
+              >
+                <Shuffle className="w-4 h-4 text-purple-500" />
+                <span>Shuffle</span>
+              </button>
+              {hasCustomOrder && (
+                <button
+                  onClick={handleResetOrder}
+                  className="px-3.5 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs font-bold rounded-xl active:scale-95 transition-all flex items-center gap-1.5"
+                  title="Reset to original order"
+                >
+                  <RotateCcw className="w-4 h-4 text-gray-500" />
+                  <span>Reset Order</span>
+                </button>
+              )}
+            </>
           )}
 
           <button
@@ -207,21 +284,44 @@ export const AudioPage: React.FC<AudioPageProps> = ({
         ) : (
           <div className="bg-white dark:bg-[#121824] border border-gray-200 dark:border-[#26334D] rounded-3xl overflow-hidden shadow-sm">
             <div className="divide-y divide-gray-100 dark:divide-gray-800/80">
+              {/* Drag hint */}
+              <div className="px-4 py-2 flex items-center gap-1.5 text-[11px] text-gray-400 dark:text-gray-500 italic bg-gray-50/50 dark:bg-[#161D2B]/50">
+                <GripVertical className="w-3 h-3" />
+                Drag rows to reorder your song list
+              </div>
+
               {tracks.map((track, index) => {
                 const isCurrent = currentTrack?.id === track.id;
                 const cleanName = track.originalName.replace(/\.[^/.]+$/, '');
+                const isDragTarget = dragOverIndex === index && dragIndex !== index;
+                const isDragging = dragIndex === index;
 
                 return (
                   <div
                     key={track.id}
+                    draggable
+                    onDragStart={() => handleDragStart(index)}
+                    onDragOver={(e) => handleDragOver(e, index)}
+                    onDrop={(e) => handleDrop(e, index)}
+                    onDragEnd={() => { setDragIndex(null); setDragOverIndex(null); }}
                     onClick={() => playTrack(track, tracks)}
                     className={`flex items-center justify-between px-4 py-3 sm:px-6 cursor-pointer transition-colors group ${
-                      isCurrent
+                      isDragging
+                        ? 'opacity-40 bg-purple-50 dark:bg-purple-950/20'
+                        : isDragTarget
+                        ? 'bg-purple-100/60 dark:bg-purple-900/20 border-t-2 border-purple-500'
+                        : isCurrent
                         ? 'bg-purple-50/80 dark:bg-purple-950/30 font-semibold'
                         : 'hover:bg-gray-50 dark:hover:bg-[#161D2B]'
                     }`}
                   >
                     <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                      {/* Drag Handle */}
+                      <GripVertical
+                        className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity -ml-1"
+                        onClick={e => e.stopPropagation()}
+                      />
+
                       {/* Play/Index Indicator */}
                       <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-300">
                         {isCurrent && isPlaying ? (

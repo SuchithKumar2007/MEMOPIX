@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, Video, Music, FolderOpen, FolderArchive, Menu } from 'lucide-react';
+import { Image, Video, Music, FolderOpen, FolderArchive, Menu, LayoutGrid } from 'lucide-react';
 
 interface BottomNavigationProps {
   currentTab: string;
@@ -13,6 +13,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
   onOpenMobileMenu
 }) => {
   const items = [
+    { id: 'all', label: 'All', icon: LayoutGrid },
     { id: 'photos', label: 'Photos', icon: Image },
     { id: 'videos', label: 'Videos', icon: Video },
     { id: 'audio', label: 'Music', icon: Music },

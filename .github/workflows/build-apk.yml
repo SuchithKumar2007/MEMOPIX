@@ -2,6 +2,11 @@ name: Build MEMOPIX Android APK
 
 on:
   workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'frontend/android/**'
+      - '.github/workflows/build-apk.yml'
 
 permissions:
   contents: write
@@ -23,6 +28,13 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Set up Android SDK
+        run: |
+          export ANDROID_HOME=${ANDROID_HOME:-/usr/local/lib/android/sdk}
+          echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
+          echo "sdk.dir=$ANDROID_HOME" > frontend/android/local.properties
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+
       - name: Set up Node.js 20
         uses: actions/setup-node@v4
         with:
@@ -30,7 +42,7 @@ jobs:
 
       - name: Install Frontend Dependencies
         working-directory: ./frontend
-        run: npm ci --prefer-offline || npm install
+        run: npm install
 
       - name: Build Web Application
         working-directory: ./frontend

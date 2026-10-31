@@ -9,7 +9,8 @@ import {
   Share2,
   Trash2,
   HardDrive,
-  Settings
+  Settings,
+  LayoutGrid
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -22,6 +23,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab }) => 
   const { storage } = useAuth();
 
   const navItems = [
+    { id: 'all', label: 'All Files', icon: LayoutGrid },
     { id: 'photos', label: 'Photos', icon: Image },
     { id: 'videos', label: 'Videos', icon: Video },
     { id: 'audio', label: 'Music & Audio', icon: Music },

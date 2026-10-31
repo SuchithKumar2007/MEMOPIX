@@ -25,6 +25,7 @@ import { RegisterPage } from './pages/RegisterPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { PhotosPage } from './pages/PhotosPage';
+import { AllMediaPage } from './pages/AllMediaPage';
 import { VideosPage } from './pages/VideosPage';
 import { AudioPage } from './pages/AudioPage';
 import { FoldersPage } from './pages/FoldersPage';
@@ -307,6 +308,17 @@ export const App: React.FC = () => {
               onSelectGroup={handleSelectGroup}
               onClickMedia={handleClickMedia}
               onShareAlbum={handleOpenShareAlbum}
+              onOpenUpload={() => setIsUploadOpen(true)}
+              onFavorite={handleFavoriteToggle}
+              reloadTrigger={reloadTrigger}
+            />
+          ) : currentTab === 'all' ? (
+            <AllMediaPage
+              searchQuery={searchQuery}
+              selectedIds={selectedIds}
+              onToggleSelect={handleToggleSelect}
+              onSelectGroup={handleSelectGroup}
+              onClickMedia={handleClickMedia}
               onOpenUpload={() => setIsUploadOpen(true)}
               onFavorite={handleFavoriteToggle}
               reloadTrigger={reloadTrigger}
