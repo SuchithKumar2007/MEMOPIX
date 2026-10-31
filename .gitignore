@@ -20,12 +20,14 @@ backend/.env
 # SQLite Database & Storage
 *.db
 *.db-journal
+*.db.bak
 *.sqlite
 *.sqlite3
 backend/dev.db
 backend/dev.db-journal
 backend/prisma/dev.db
 backend/prisma/dev.db-journal
+backend/prisma/dev.db.bak
 backend/storage_data/
 storage_data/
 
