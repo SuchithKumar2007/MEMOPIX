@@ -2,10 +2,6 @@ name: Build MEMOPIX Android APK
 
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - 'frontend/android/**'
-      - '.github/workflows/build-apk.yml'
 
 permissions:
   contents: write
@@ -30,6 +26,7 @@ jobs:
           echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
           echo "sdk.dir=$ANDROID_HOME" > frontend/android/local.properties
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-35" "build-tools;35.0.0" || true
 
       - name: Set up Node.js 20
         uses: actions/setup-node@v4
