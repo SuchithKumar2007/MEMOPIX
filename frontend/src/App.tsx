@@ -166,6 +166,20 @@ export const App: React.FC = () => {
     }
   };
 
+  // Rename Media Handler
+  const handleRenameMedia = async (id: string, newName: string) => {
+    try {
+      await mediaApi.update(id, { originalName: newName });
+      if (activeMedia && activeMedia.id === id) {
+        setActiveMedia({ ...activeMedia, originalName: newName });
+      }
+      success(`Renamed to "${newName}".`);
+      triggerReload();
+    } catch {
+      error('Failed to rename file.');
+    }
+  };
+
   // Trash Media Handler
   const handleTrashMedia = async (id: string) => {
     try {
@@ -423,6 +437,7 @@ export const App: React.FC = () => {
           onFavorite={handleFavoriteToggle}
           onTrash={handleTrashMedia}
           onShare={handleOpenShareMedia}
+          onRename={handleRenameMedia}
         />
       )}
 

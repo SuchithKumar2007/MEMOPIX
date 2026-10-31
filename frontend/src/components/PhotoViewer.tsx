@@ -15,7 +15,9 @@ import {
   HardDrive,
   Maximize2,
   Play,
-  Pause
+  Pause,
+  Pencil,
+  Check
 } from 'lucide-react';
 import { MediaItem } from '../types';
 import { formatBytes } from '../utils/formatters';
@@ -29,6 +31,7 @@ interface PhotoViewerProps {
   onFavorite: (id: string, isFav: boolean) => void;
   onTrash: (id: string) => void;
   onShare: (media: MediaItem) => void;
+  onRename?: (id: string, newName: string) => void;
 }
 
 export const PhotoViewer: React.FC<PhotoViewerProps> = ({
@@ -38,12 +41,15 @@ export const PhotoViewer: React.FC<PhotoViewerProps> = ({
   onNavigate,
   onFavorite,
   onTrash,
-  onShare
+  onShare,
+  onRename
 }) => {
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [showInfo, setShowInfo] = useState(false);
   const [isSlideshow, setIsSlideshow] = useState(false);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState('');
 
   // Touch swipe tracking
   const touchStartX = useRef<number | null>(null);
@@ -53,6 +59,8 @@ export const PhotoViewer: React.FC<PhotoViewerProps> = ({
     // Reset transform when media changes
     setZoom(1);
     setRotation(0);
+    setIsRenaming(false);
+    setRenameValue('');
   }, [media?.id]);
 
   useEffect(() => {
@@ -101,6 +109,24 @@ export const PhotoViewer: React.FC<PhotoViewerProps> = ({
   const handleZoomOut = () => setZoom(prev => Math.max(prev - 0.25, 0.5));
   const handleRotate = () => setRotation(prev => (prev + 90) % 360);
 
+  const handleRenameStart = () => {
+    setRenameValue(media.originalName);
+    setIsRenaming(true);
+  };
+
+  const handleRenameCommit = () => {
+    const trimmed = renameValue.trim();
+    if (trimmed && trimmed !== media.originalName && onRename) {
+      onRename(media.id, trimmed);
+    }
+    setIsRenaming(false);
+  };
+
+  const handleRenameKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') handleRenameCommit();
+    if (e.key === 'Escape') setIsRenaming(false);
+  };
+
   // Mobile Touch Swipe Handlers
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
@@ -147,9 +173,39 @@ export const PhotoViewer: React.FC<PhotoViewerProps> = ({
             <X className="w-6 h-6" />
           </button>
           <div className="text-white">
-            <p className="text-sm font-semibold truncate max-w-xs sm:max-w-md">
-              {media.originalName}
-            </p>
+            {isRenaming ? (
+              <div className="flex items-center gap-2">
+                <input
+                  autoFocus
+                  value={renameValue}
+                  onChange={e => setRenameValue(e.target.value)}
+                  onBlur={handleRenameCommit}
+                  onKeyDown={handleRenameKeyDown}
+                  className="text-sm font-semibold bg-white/10 text-white rounded-lg px-2 py-0.5 w-48 sm:w-72 outline-none border border-white/40 focus:border-brand-400"
+                />
+                <button onClick={handleRenameCommit} className="p-1 bg-brand-500 hover:bg-brand-600 text-white rounded-lg transition-colors" title="Save rename">
+                  <Check className="w-3.5 h-3.5" />
+                </button>
+                <button onClick={() => setIsRenaming(false)} className="p-1 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors" title="Cancel">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 group/rename">
+                <p className="text-sm font-semibold truncate max-w-xs sm:max-w-md">
+                  {media.originalName}
+                </p>
+                {onRename && (
+                  <button
+                    onClick={handleRenameStart}
+                    className="opacity-0 group-hover/rename:opacity-100 p-1 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+                    title="Rename file"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            )}
             <p className="text-xs text-white/60">
               {format(parseISO(media.createdAt), 'MMMM d, yyyy • h:mm a')}
             </p>

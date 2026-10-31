@@ -20,7 +20,9 @@ import {
   Trash2,
   Clock,
   Zap,
-  Layers
+  Layers,
+  Pencil,
+  CheckCheck
 } from 'lucide-react';
 import { resumableUploader } from '../services/resumableUploader';
 import { UploadQueueItem } from '../types';
@@ -48,6 +50,8 @@ export const UploadModal: React.FC<UploadModalProps> = ({
   const documentsInputRef = useRef<HTMLInputElement>(null);
   const reselectInputRef = useRef<HTMLInputElement>(null);
   const [reselectTargetId, setReselectTargetId] = useState<string | null>(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
 
   useEffect(() => {
     const unsubscribe = resumableUploader.subscribe((items) => {
@@ -89,6 +93,24 @@ export const UploadModal: React.FC<UploadModalProps> = ({
       setReselectTargetId(null);
       e.target.value = '';
     }
+  };
+
+  const handleRenameStart = (id: string, currentName: string) => {
+    setRenamingId(id);
+    setRenameValue(currentName);
+  };
+
+  const handleRenameCommit = () => {
+    if (renamingId && renameValue.trim()) {
+      resumableUploader.renameQueueItem(renamingId, renameValue.trim());
+    }
+    setRenamingId(null);
+    setRenameValue('');
+  };
+
+  const handleRenameKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') handleRenameCommit();
+    if (e.key === 'Escape') { setRenamingId(null); setRenameValue(''); }
   };
 
   if (!isOpen) return null;
@@ -289,13 +311,16 @@ export const UploadModal: React.FC<UploadModalProps> = ({
                   <Layers className="w-3.5 h-3.5 text-purple-500" />
                   Transfer Queue ({queue.length})
                 </span>
-                <button
-                  type="button"
-                  onClick={() => resumableUploader.clearCompleted()}
-                  className="text-[11px] text-purple-600 dark:text-purple-400 hover:underline"
-                >
-                  Clear Completed
-                </button>
+                {(completedCount > 0 || queue.some(q => q.status === 'error' || q.status === 'needs_reselect')) && (
+                  <button
+                    type="button"
+                    onClick={() => resumableUploader.clearCompleted()}
+                    className="text-[11px] text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-1"
+                  >
+                    <CheckCheck className="w-3 h-3" />
+                    Clear Completed ({queue.filter(q => q.status === 'completed' || q.status === 'error' || q.status === 'needs_reselect' || q.status === 'duplicate').length})
+                  </button>
+                )}
               </div>
 
               <div className="space-y-2 max-h-60 overflow-y-auto pr-1">

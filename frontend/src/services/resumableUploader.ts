@@ -294,12 +294,38 @@ class ResumableUploader {
 
   public clearCompleted() {
     for (const [id, item] of this.items.entries()) {
-      if (item.status === 'completed') {
+      if (item.status === 'completed' || item.status === 'error' || item.status === 'needs_reselect' || item.status === 'duplicate') {
         this.items.delete(id);
         this.activeFiles.delete(id);
         this.removeFromDb(id);
       }
     }
+    this.notify();
+  }
+
+  /** Rename a pending/paused/needs_reselect item before it is uploaded */
+  public renameQueueItem(id: string, newName: string) {
+    const item = this.items.get(id);
+    if (!item) return;
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    item.fileName = trimmed;
+    // Also update IndexedDB meta
+    this.saveToDb({
+      id: item.id,
+      sessionId: item.sessionId,
+      fileName: trimmed,
+      fileSize: item.fileSize,
+      mimeType: item.mimeType,
+      lastModified: item.file ? item.file.lastModified : Date.now(),
+      chunkSize: item.chunkSize || 5242880,
+      totalChunks: item.totalChunks || 1,
+      uploadedParts: item.uploadedParts || [],
+      uploadedBytes: item.uploadedBytes || 0,
+      folderId: item.folderId,
+      status: item.status,
+      createdAt: Date.now()
+    });
     this.notify();
   }
 
