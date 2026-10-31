@@ -20,13 +20,8 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Set up Android SDK
-        run: |
-          export ANDROID_HOME=${ANDROID_HOME:-/usr/local/lib/android/sdk}
-          echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
-          echo "sdk.dir=$ANDROID_HOME" > frontend/android/local.properties
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-35" "build-tools;35.0.0" || true
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Set up Node.js 20
         uses: actions/setup-node@v4
@@ -35,7 +30,7 @@ jobs:
 
       - name: Install Frontend Dependencies
         working-directory: ./frontend
-        run: npm install
+        run: npm ci --prefer-offline || npm install
 
       - name: Build Web Application
         working-directory: ./frontend
@@ -47,11 +42,13 @@ jobs:
           mkdir -p frontend/android/app/src/main/assets/public
           cp -r frontend/dist/. frontend/android/app/src/main/assets/public/
 
+      - name: Grant gradlew execute permission
+        working-directory: ./frontend/android
+        run: chmod +x gradlew
+
       - name: Build Debug APK
         working-directory: ./frontend/android
-        run: |
-          chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+        run: ./gradlew assembleDebug --no-daemon
 
       - name: Upload APK as Workflow Artifact
         uses: actions/upload-artifact@v4

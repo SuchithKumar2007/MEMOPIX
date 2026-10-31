@@ -12,7 +12,7 @@ const DEFAULT_USERS: Array<User & { password?: string }> = [
     name: 'Suchith',
     email: 'suchith@gmail.com',
     password: 'password123',
-    avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop',
+    avatarUrl: undefined,
     createdAt: '2026-01-01T00:00:00.000Z'
   },
   {
@@ -20,7 +20,7 @@ const DEFAULT_USERS: Array<User & { password?: string }> = [
     name: 'Suchith Kumar',
     email: 'suchith2007kumar@gmail.com',
     password: 'password123',
-    avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop',
+    avatarUrl: undefined,
     createdAt: '2026-01-01T00:00:00.000Z'
   },
   {
@@ -28,7 +28,7 @@ const DEFAULT_USERS: Array<User & { password?: string }> = [
     name: 'Suchith',
     email: 'suchith@2007.com',
     password: 'password123',
-    avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop',
+    avatarUrl: undefined,
     createdAt: '2026-01-01T00:00:00.000Z'
   }
 ];
@@ -180,7 +180,8 @@ export const clientVault = {
         localStorage.setItem(USERS_KEY, JSON.stringify(DEFAULT_USERS));
         return DEFAULT_USERS;
       }
-      return JSON.parse(data);
+      const list = JSON.parse(data);
+      return list.map((u: any) => u.avatarUrl && u.avatarUrl.includes('unsplash.com') ? { ...u, avatarUrl: undefined } : u);
     } catch {
       return DEFAULT_USERS;
     }
@@ -291,7 +292,7 @@ export const clientVault = {
         id: `usr_${Date.now()}`,
         name: capitalized,
         email: cleanEmail,
-        avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop',
+        avatarUrl: undefined,
         createdAt: new Date().toISOString()
       };
       users.push(found);
@@ -325,7 +326,7 @@ export const clientVault = {
         id: `usr_g_${Date.now()}`,
         name: name || 'Google User',
         email: cleanEmail,
-        avatarUrl: avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop',
+        avatarUrl: avatarUrl || undefined,
         createdAt: new Date().toISOString()
       };
       users.push(found);
@@ -380,7 +381,7 @@ export const clientVault = {
         name: data.name || 'New Member',
         email: cleanEmail,
         password: data.password || 'password123',
-        avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop',
+        avatarUrl: undefined,
         createdAt: new Date().toISOString()
       };
       users.push(found);

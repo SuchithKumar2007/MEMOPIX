@@ -107,13 +107,13 @@ export class AuthController {
     try {
       const email = req.body.email || req.query.email || 'user@gmail.com';
       const name = req.body.name || req.query.name || 'Google User';
-      const avatarUrl = req.body.avatarUrl || req.query.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop';
+      const avatarUrl = req.body.avatarUrl || req.query.avatarUrl || null;
 
       const result = await AuthService.googleOAuth({
         googleId: `google_${Date.now()}`,
         email: String(email).toLowerCase().trim(),
         name: String(name).trim(),
-        avatarUrl: String(avatarUrl)
+        avatarUrl: avatarUrl ? String(avatarUrl) : undefined
       });
 
       // If requested via JSON / API / POST, return direct JSON token

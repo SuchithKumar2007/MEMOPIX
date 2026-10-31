@@ -20,12 +20,7 @@ const PRESET_ACCOUNTS: MockAccount[] = [
   {
     name: 'Suchith',
     email: 'suchith@gmail.com',
-    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop'
-  },
-  {
-    name: 'Alex Morgan',
-    email: 'alex.morgan@gmail.com',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop'
+    avatar: ''
   }
 ];
 
@@ -90,7 +85,7 @@ export const GoogleSignInModal: React.FC<GoogleSignInModalProps> = ({ isOpen, on
     handleSelectAccount({
       name: customName.trim(),
       email: customEmail.trim(),
-      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop'
+      avatar: ''
     });
   };
 
@@ -139,11 +134,17 @@ export const GoogleSignInModal: React.FC<GoogleSignInModalProps> = ({ isOpen, on
                       className="w-full flex items-center justify-between p-3.5 rounded-2xl border border-gray-200 dark:border-[#26334D] hover:border-brand-500 dark:hover:border-brand-500 hover:bg-brand-50/40 dark:hover:bg-brand-950/30 transition-all text-left group"
                     >
                       <div className="flex items-center gap-3.5 min-w-0">
-                        <img 
-                          src={acc.avatar} 
-                          alt={acc.name} 
-                          className="w-10 h-10 rounded-full object-cover ring-2 ring-brand-500/20 flex-shrink-0"
-                        />
+                        {acc.avatar ? (
+                          <img 
+                            src={acc.avatar} 
+                            alt={acc.name} 
+                            className="w-10 h-10 rounded-full object-cover ring-2 ring-brand-500/20 flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-[#1A73E8] text-white font-bold flex items-center justify-center text-sm shadow-inner flex-shrink-0">
+                            {acc.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
                         <div className="min-w-0">
                           <p className="text-sm font-semibold text-gray-900 dark:text-white group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors truncate">
                             {acc.name}

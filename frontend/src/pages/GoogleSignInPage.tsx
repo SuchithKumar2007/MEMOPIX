@@ -42,32 +42,37 @@ export const GoogleSignInPage: React.FC<GoogleSignInPageProps> = ({ onBack }) =>
     setIsLoading(true);
 
     try {
-      // Call mock / real Google sign in handler
-      const res = await fetch(
-        `${API_BASE}/auth/google/mock?name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}&avatarUrl=${encodeURIComponent('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop')}`,
-        { redirect: 'manual' }
-      );
+      const res = await fetch(`${API_BASE}/auth/google/mock`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim(),
+          password: password || undefined,
+          avatarUrl: ''
+        })
+      });
 
-      // Handle redirect / token
-      const location = res.headers.get('location') || '';
-      let token = '';
-      if (location && location.includes('token=')) {
-        const url = new URL(location, window.location.origin);
-        token = url.searchParams.get('token') || '';
+      const json = await res.json();
+      if (json.success && json.data?.token) {
+        await loginWithToken(json.data.token);
+        success(`Welcome, ${name}! Your 5 TB MEMOPIX Cloud is ready.`);
+        return;
       }
 
-      if (token) {
-        await loginWithToken(token);
-        success(`Welcome, ${name}! Your 5 TB MEMOPIX Cloud is ready.`);
-      } else {
+      throw new Error(json.message || 'Google authentication failed.');
+    } catch (err: any) {
+      console.warn('Google sign in error:', err);
+      try {
         const fallback = clientVault.googleLogin(name, email);
         await loginWithToken(fallback.data.token);
         success(`Welcome, ${name}! Your 5 TB MEMOPIX Cloud is ready.`);
+      } catch {
+        setErrorMessage(err?.message || 'Failed to sign in. Please try again.');
       }
-    } catch {
-      const fallback = clientVault.googleLogin(name, email);
-      await loginWithToken(fallback.data.token);
-      success(`Welcome, ${name}! Your 5 TB MEMOPIX Cloud is ready.`);
     } finally {
       setIsLoading(false);
     }

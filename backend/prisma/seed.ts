@@ -9,21 +9,21 @@ async function main() {
       email: 'suchith@2007.com',
       name: 'Suchith',
       passwordHash: '$2a$12$.hXZkESVAf9A6wYF/hsF.uApsm0K/vzxqErtyPd94EC3I7zko9kYm',
-      avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop'
+      avatarUrl: null
     },
     {
       id: '3b0e7cf6-9a50-4dfe-ae3e-f8ff6ecd7e78',
       email: 'suchith@gmail.com',
       name: 'Suchith',
       passwordHash: '$2a$12$.hXZkESVAf9A6wYF/hsF.uApsm0K/vzxqErtyPd94EC3I7zko9kYm',
-      avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop'
+      avatarUrl: null
     },
     {
       id: '7e43e689-641d-4514-adec-372cc9f83ed3',
       email: 'suchith2007kumar@gmail.com',
       name: 'Suchith Kumar',
       passwordHash: '$2a$12$.hXZkESVAf9A6wYF/hsF.uApsm0K/vzxqErtyPd94EC3I7zko9kYm',
-      avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop'
+      avatarUrl: null
     }
   ];
 

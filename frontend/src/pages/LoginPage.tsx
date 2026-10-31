@@ -145,7 +145,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
         {/* 1-Click Google Login Button */}
         <button
           type="button"
-          onClick={() => setIsGoogleModalOpen(true)}
+          onClick={() => onNavigate('google-signin')}
           className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-[#1A2234] hover:bg-[#222C42] border border-[#26334D] hover:border-gray-500 rounded-2xl text-sm font-semibold text-white transition-all shadow-md active:scale-95 group"
         >
           <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">

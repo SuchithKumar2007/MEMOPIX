@@ -66,23 +66,12 @@ router.get('/google', (req: Request, res: Response, next: NextFunction) => {
         <p class="subtitle">Choose an account to continue to <strong>MEMOPIX 5 TB Cloud</strong></p>
 
         <div class="account-list">
-          <a href="/api/auth/google/mock?name=Suchith&email=suchith@gmail.com&avatarUrl=https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150" class="account-btn">
+          <a href="/api/auth/google/mock?name=Suchith&email=suchith@gmail.com" class="account-btn">
             <div class="account-info">
-              <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150" class="avatar" alt="Avatar" />
+              <div style="width:40px;height:40px;border-radius:50%;background:#3B82F6;color:#FFF;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;">S</div>
               <div>
                 <div class="name">Suchith</div>
                 <div class="email">suchith@gmail.com</div>
-              </div>
-            </div>
-            <span class="badge">5 TB</span>
-          </a>
-
-          <a href="/api/auth/google/mock?name=Alex+Morgan&email=alex.morgan@gmail.com&avatarUrl=https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150" class="account-btn">
-            <div class="account-info">
-              <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150" class="avatar" alt="Avatar" />
-              <div>
-                <div class="name">Alex Morgan</div>
-                <div class="email">alex.morgan@gmail.com</div>
               </div>
             </div>
             <span class="badge">5 TB</span>

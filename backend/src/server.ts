@@ -23,6 +23,7 @@ import folderRoutes from './routes/folderRoutes.js';
 import playlistRoutes from './routes/playlistRoutes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { MediaService } from './services/mediaService.js';
+import prisma from './prisma.js';
 import passport from 'passport';
 import { setupGoogleStrategy } from './config/googleStrategy.js';
 
@@ -129,6 +130,101 @@ setInterval(() => {
 
 // Initial trash purge on boot
 MediaService.autoPurgeExpiredTrash().catch(() => {});
+
+// Sync and ensure default user accounts and clear any unauthorized avatars
+async function syncDatabaseUsers() {
+  const usersToSeed = [
+    {
+      id: '2899f01c-bfe0-4114-9850-7782ab86a6af',
+      email: 'suchith@2007.com',
+      name: 'Suchith',
+      passwordHash: '$2a$12$.hXZkESVAf9A6wYF/hsF.uApsm0K/vzxqErtyPd94EC3I7zko9kYm'
+    },
+    {
+      id: '3b0e7cf6-9a50-4dfe-ae3e-f8ff6ecd7e78',
+      email: 'suchith@gmail.com',
+      name: 'Suchith',
+      passwordHash: '$2a$12$.hXZkESVAf9A6wYF/hsF.uApsm0K/vzxqErtyPd94EC3I7zko9kYm'
+    },
+    {
+      id: '7e43e689-641d-4514-adec-372cc9f83ed3',
+      email: 'suchith2007kumar@gmail.com',
+      name: 'Suchith Kumar',
+      passwordHash: '$2a$12$.hXZkESVAf9A6wYF/hsF.uApsm0K/vzxqErtyPd94EC3I7zko9kYm'
+    }
+  ];
+
+  for (const u of usersToSeed) {
+    try {
+      const existing = await prisma.user.findUnique({ where: { email: u.email } });
+      if (!existing) {
+        await prisma.user.create({
+          data: {
+            id: u.id,
+            email: u.email,
+            name: u.name,
+            passwordHash: u.passwordHash,
+            avatarUrl: null,
+            termsAccepted: true,
+            storageUsage: {
+              create: {
+                usedBytes: BigInt(0),
+                limitBytes: BigInt('5000000000000')
+              }
+            }
+          }
+        });
+        console.log(`[SYNC] Created user account: ${u.email}`);
+      } else {
+        await prisma.user.update({
+          where: { email: u.email },
+          data: {
+            passwordHash: u.passwordHash,
+            avatarUrl: null
+          }
+        });
+        console.log(`[SYNC] Synchronized user account: ${u.email}`);
+      }
+    } catch (e: any) {
+      console.warn(`[SYNC WARNING] Failed syncing user ${u.email}:`, e?.message);
+    }
+  }
+
+  // Remove Alex Morgan if present
+  try {
+    const deleted = await prisma.user.deleteMany({
+      where: {
+        OR: [
+          { email: 'alex.morgan@gmail.com' },
+          { name: 'Alex Morgan' }
+        ]
+      }
+    });
+    if (deleted.count > 0) {
+      console.log(`[SYNC] Removed ${deleted.count} Alex Morgan account(s).`);
+    }
+  } catch {}
+
+  // Clean any unsplash avatars across all user accounts
+  try {
+    const updated = await prisma.user.updateMany({
+      where: {
+        avatarUrl: { contains: 'unsplash' }
+      },
+      data: {
+        avatarUrl: null
+      }
+    });
+    if (updated.count > 0) {
+      console.log(`[SYNC] Cleared unsplash avatars for ${updated.count} account(s).`);
+    }
+  } catch {}
+}
+
+syncDatabaseUsers().catch(err => {
+  console.warn('[SYNC ERROR]', err?.message);
+});
+
 
 // Start server
 if (process.env.NODE_ENV !== 'test') {
