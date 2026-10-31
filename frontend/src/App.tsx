@@ -17,6 +17,8 @@ import { SplashScreen } from './components/SplashScreen';
 import { ShareModal } from './components/ShareModal';
 import { CreateAlbumModal } from './components/CreateAlbumModal';
 import { AddToAlbumModal } from './components/AddToAlbumModal';
+import { MobileDrawer } from './components/MobileDrawer';
+import { RenameModal } from './components/RenameModal';
 import { useMusicPlayer } from './context/MusicPlayerContext';
 
 // Pages
@@ -64,6 +66,9 @@ export const App: React.FC = () => {
   const [shareMedia, setShareMedia] = useState<MediaItem | null>(null);
   const [shareAlbum, setShareAlbum] = useState<Album | null>(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState<boolean>(false);
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState<boolean>(false);
+  const [renameTarget, setRenameTarget] = useState<MediaItem | null>(null);
+  const [isRenameModalOpen, setIsRenameModalOpen] = useState<boolean>(false);
 
   // Trigger reload of active list
   const triggerReload = () => setReloadTrigger(prev => prev + 1);
@@ -248,6 +253,37 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleBulkUnarchive = async (idsToUnarchive?: string[]) => {
+    const ids = idsToUnarchive || selectedIds;
+    if (ids.length === 0) return;
+    try {
+      await mediaApi.bulkAction('unarchive', ids);
+      success(`Unarchived ${ids.length} item(s) — restored to gallery.`);
+      handleClearSelection();
+      triggerReload();
+    } catch {
+      error('Failed to unarchive items.');
+    }
+  };
+
+  const handleSingleArchive = async (id: string, archive: boolean) => {
+    try {
+      await mediaApi.bulkAction(archive ? 'archive' : 'unarchive', [id]);
+      success(archive ? 'Memory archived.' : 'Restored from archive.');
+      if (activeMedia && activeMedia.id === id) {
+        setActiveMedia({ ...activeMedia, isArchived: archive });
+      }
+      triggerReload();
+    } catch {
+      error(archive ? 'Failed to archive.' : 'Failed to unarchive.');
+    }
+  };
+
+  const handleOpenRename = (media: MediaItem) => {
+    setRenameTarget(media);
+    setIsRenameModalOpen(true);
+  };
+
   const handleBulkTrash = async () => {
     try {
       await mediaApi.bulkAction('trash', selectedIds);
@@ -294,6 +330,7 @@ export const App: React.FC = () => {
           onSearchChange={setSearchQuery}
           onOpenUpload={() => setIsUploadOpen(true)}
           onNavigate={handleSelectTab}
+          onOpenMobileDrawer={() => setIsMobileDrawerOpen(true)}
         />
 
         {/* Scrollable Page Body */}
@@ -310,6 +347,7 @@ export const App: React.FC = () => {
               onShareAlbum={handleOpenShareAlbum}
               onOpenUpload={() => setIsUploadOpen(true)}
               onFavorite={handleFavoriteToggle}
+              onRename={handleOpenRename}
               reloadTrigger={reloadTrigger}
             />
           ) : currentTab === 'all' ? (
@@ -321,6 +359,7 @@ export const App: React.FC = () => {
               onClickMedia={handleClickMedia}
               onOpenUpload={() => setIsUploadOpen(true)}
               onFavorite={handleFavoriteToggle}
+              onRename={handleOpenRename}
               reloadTrigger={reloadTrigger}
             />
           ) : currentTab === 'photos' ? (
@@ -332,6 +371,7 @@ export const App: React.FC = () => {
               onClickMedia={handleClickMedia}
               onOpenUpload={() => setIsUploadOpen(true)}
               onFavorite={handleFavoriteToggle}
+              onRename={handleOpenRename}
               reloadTrigger={reloadTrigger}
             />
           ) : currentTab === 'videos' ? (
@@ -379,6 +419,7 @@ export const App: React.FC = () => {
               onSelectGroup={handleSelectGroup}
               onClickMedia={handleClickMedia}
               onFavorite={handleFavoriteToggle}
+              onRename={handleOpenRename}
               reloadTrigger={reloadTrigger}
             />
           ) : currentTab === 'archive' ? (
@@ -388,6 +429,8 @@ export const App: React.FC = () => {
               onSelectGroup={handleSelectGroup}
               onClickMedia={handleClickMedia}
               onFavorite={handleFavoriteToggle}
+              onUnarchive={handleBulkUnarchive}
+              onRename={handleOpenRename}
               reloadTrigger={reloadTrigger}
             />
           ) : currentTab === 'trash' ? (
@@ -412,6 +455,7 @@ export const App: React.FC = () => {
               onClickMedia={handleClickMedia}
               onOpenUpload={() => setIsUploadOpen(true)}
               onFavorite={handleFavoriteToggle}
+              onRename={handleOpenRename}
               reloadTrigger={reloadTrigger}
             />
           )}
@@ -424,19 +468,31 @@ export const App: React.FC = () => {
       {/* Floating Multi-Select Toolbar */}
       <MultiSelectBar
         selectedCount={selectedIds.length}
+        currentTab={currentTab}
         onClear={handleClearSelection}
         onDownloadZip={handleBulkDownloadZip}
         onFavorite={handleBulkFavorite}
         onArchive={handleBulkArchive}
+        onUnarchive={handleBulkUnarchive}
         onAddToAlbum={() => setIsAddToAlbumOpen(true)}
         onTrash={handleBulkTrash}
+        onRename={() => {
+          const found = currentMediaList.find(m => m.id === selectedIds[0]);
+          if (found) {
+            handleOpenRename(found);
+          } else {
+            mediaApi.getById(selectedIds[0]).then(res => {
+              if (res.success && res.data) handleOpenRename(res.data);
+            }).catch(() => {});
+          }
+        }}
       />
 
       {/* Bottom Navigation (Mobile) */}
       <BottomNavigation
         currentTab={currentTab}
         onSelectTab={handleSelectTab}
-        onOpenMobileMenu={() => handleSelectTab('settings')}
+        onOpenMobileMenu={() => setIsMobileDrawerOpen(true)}
       />
 
       {/* Fullscreen Photo Viewer */}
@@ -450,6 +506,7 @@ export const App: React.FC = () => {
           onTrash={handleTrashMedia}
           onShare={handleOpenShareMedia}
           onRename={handleRenameMedia}
+          onArchive={handleSingleArchive}
         />
       )}
 
@@ -461,8 +518,29 @@ export const App: React.FC = () => {
           onFavorite={handleFavoriteToggle}
           onTrash={handleTrashMedia}
           onShare={handleOpenShareMedia}
+          onRename={handleRenameMedia}
+          onArchive={handleSingleArchive}
         />
       )}
+
+      {/* Mobile Vertical Navigation Drawer */}
+      <MobileDrawer
+        isOpen={isMobileDrawerOpen}
+        onClose={() => setIsMobileDrawerOpen(false)}
+        currentTab={selectedAlbum ? 'albums' : currentTab}
+        onSelectTab={handleSelectTab}
+      />
+
+      {/* Rename File Modal */}
+      <RenameModal
+        isOpen={isRenameModalOpen}
+        media={renameTarget}
+        onClose={() => {
+          setIsRenameModalOpen(false);
+          setRenameTarget(null);
+        }}
+        onSave={handleRenameMedia}
+      />
 
       {/* Upload Modal (Resumable 5 TB Upload Engine) */}
       <UploadModal

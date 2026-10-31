@@ -17,6 +17,7 @@ interface AlbumDetailPageProps {
   onShareAlbum: (album: Album) => void;
   onOpenUpload: () => void;
   onFavorite: (id: string, isFav: boolean) => void;
+  onRename?: (media: MediaItem) => void;
   reloadTrigger: number;
 }
 
@@ -30,6 +31,7 @@ export const AlbumDetailPage: React.FC<AlbumDetailPageProps> = ({
   onShareAlbum,
   onOpenUpload,
   onFavorite,
+  onRename,
   reloadTrigger
 }) => {
   const [albumDetails, setAlbumDetails] = useState<Album | null>(null);
@@ -114,6 +116,7 @@ export const AlbumDetailPage: React.FC<AlbumDetailPageProps> = ({
           onSelectGroup={onSelectGroup}
           onClickMedia={item => onClickMedia(item, mediaList)}
           onFavorite={onFavorite}
+          onRename={onRename}
         />
       )}
     </div>

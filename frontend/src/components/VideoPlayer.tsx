@@ -11,7 +11,11 @@ import {
   Download,
   Trash2,
   RotateCcw,
-  RotateCw
+  RotateCw,
+  Pencil,
+  Check,
+  Archive,
+  ArchiveRestore
 } from 'lucide-react';
 import { MediaItem } from '../types';
 import { formatDuration } from '../utils/formatters';
@@ -22,6 +26,8 @@ interface VideoPlayerProps {
   onFavorite: (id: string, isFav: boolean) => void;
   onTrash: (id: string) => void;
   onShare: (media: MediaItem) => void;
+  onRename?: (id: string, newName: string) => void;
+  onArchive?: (id: string, archive: boolean) => void;
 }
 
 export const VideoPlayer: React.FC<VideoPlayerProps> = ({
@@ -29,7 +35,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   onClose,
   onFavorite,
   onTrash,
-  onShare
+  onShare,
+  onRename,
+  onArchive
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -38,6 +46,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState('');
+
+  useEffect(() => {
+    setIsRenaming(false);
+    setRenameValue('');
+  }, [media?.id]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -128,13 +143,90 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             <X className="w-6 h-6" />
           </button>
           <div>
-            <p className="text-sm font-semibold truncate max-w-xs sm:max-w-md">
-              {media.originalName}
-            </p>
+            {isRenaming ? (
+              <div className="flex items-center gap-2">
+                <input
+                  autoFocus
+                  value={renameValue}
+                  onChange={e => setRenameValue(e.target.value)}
+                  onBlur={() => {
+                    if (renameValue.trim() && onRename && media) {
+                      onRename(media.id, renameValue.trim());
+                    }
+                    setIsRenaming(false);
+                  }}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      if (renameValue.trim() && onRename && media) {
+                        onRename(media.id, renameValue.trim());
+                      }
+                      setIsRenaming(false);
+                    }
+                    if (e.key === 'Escape') setIsRenaming(false);
+                  }}
+                  className="text-sm font-semibold bg-white/10 text-white rounded-lg px-2 py-0.5 w-48 sm:w-72 outline-none border border-white/40 focus:border-brand-400"
+                />
+                <button
+                  onClick={() => {
+                    if (renameValue.trim() && onRename && media) {
+                      onRename(media.id, renameValue.trim());
+                    }
+                    setIsRenaming(false);
+                  }}
+                  className="p-1 bg-brand-500 hover:bg-brand-600 text-white rounded-lg transition-colors"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5">
+                <p className="text-sm font-semibold truncate max-w-xs sm:max-w-md">
+                  {media.originalName}
+                </p>
+                {onRename && (
+                  <button
+                    onClick={() => {
+                      setRenameValue(media.originalName);
+                      setIsRenaming(true);
+                    }}
+                    className="p-1 text-brand-300 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+                    title="Rename video"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
         <div className="flex items-center gap-2">
+          {onRename && !isRenaming && (
+            <button
+              onClick={() => {
+                setRenameValue(media.originalName);
+                setIsRenaming(true);
+              }}
+              title="Rename video"
+              className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-colors flex items-center gap-1.5 text-xs font-semibold"
+            >
+              <Pencil className="w-4 h-4 text-brand-400" />
+              <span className="hidden sm:inline">Rename</span>
+            </button>
+          )}
+
+          {onArchive && (
+            <button
+              onClick={() => onArchive(media.id, !media.isArchived)}
+              title={media.isArchived ? 'Unarchive — Restore to gallery' : 'Archive video'}
+              className={`p-2 rounded-xl transition-colors ${
+                media.isArchived ? 'text-amber-400 bg-amber-500/20' : 'text-white/80 hover:text-amber-400 hover:bg-white/10'
+              }`}
+            >
+              {media.isArchived ? <ArchiveRestore className="w-5 h-5" /> : <Archive className="w-5 h-5" />}
+            </button>
+          )}
+
           <button
             onClick={() => onFavorite(media.id, !media.isFavorite)}
             className={`p-2 rounded-xl transition-colors ${

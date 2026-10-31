@@ -11,6 +11,7 @@ interface MediaGridProps {
   onSelectGroup: (ids: string[]) => void;
   onClickMedia: (media: MediaItem) => void;
   onFavorite?: (id: string, isFav: boolean) => void;
+  onRename?: (media: MediaItem) => void;
 }
 
 export const MediaGrid: React.FC<MediaGridProps> = ({
@@ -19,7 +20,8 @@ export const MediaGrid: React.FC<MediaGridProps> = ({
   onToggleSelect,
   onSelectGroup,
   onClickMedia,
-  onFavorite
+  onFavorite,
+  onRename
 }) => {
   const groups = groupMediaByDate(media);
 
@@ -72,6 +74,7 @@ export const MediaGrid: React.FC<MediaGridProps> = ({
                   onToggleSelect={onToggleSelect}
                   onClick={onClickMedia}
                   onFavorite={onFavorite}
+                  onRename={onRename}
                 />
               ))}
             </div>

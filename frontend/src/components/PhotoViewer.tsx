@@ -17,7 +17,9 @@ import {
   Play,
   Pause,
   Pencil,
-  Check
+  Check,
+  Archive,
+  ArchiveRestore
 } from 'lucide-react';
 import { MediaItem } from '../types';
 import { formatBytes } from '../utils/formatters';
@@ -32,6 +34,7 @@ interface PhotoViewerProps {
   onTrash: (id: string) => void;
   onShare: (media: MediaItem) => void;
   onRename?: (id: string, newName: string) => void;
+  onArchive?: (id: string, archive: boolean) => void;
 }
 
 export const PhotoViewer: React.FC<PhotoViewerProps> = ({
@@ -42,7 +45,8 @@ export const PhotoViewer: React.FC<PhotoViewerProps> = ({
   onFavorite,
   onTrash,
   onShare,
-  onRename
+  onRename,
+  onArchive
 }) => {
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
@@ -198,7 +202,7 @@ export const PhotoViewer: React.FC<PhotoViewerProps> = ({
                 {onRename && (
                   <button
                     onClick={handleRenameStart}
-                    className="opacity-0 group-hover/rename:opacity-100 p-1 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+                    className="p-1 text-brand-300 hover:text-white hover:bg-white/10 rounded-lg transition-all"
                     title="Rename file"
                   >
                     <Pencil className="w-3.5 h-3.5" />
@@ -283,6 +287,18 @@ export const PhotoViewer: React.FC<PhotoViewerProps> = ({
           >
             <Info className="w-5 h-5" />
           </button>
+
+          {onArchive && (
+            <button
+              onClick={() => onArchive(media.id, !media.isArchived)}
+              title={media.isArchived ? 'Unarchive — Restore to gallery' : 'Archive memory'}
+              className={`p-2 rounded-xl transition-colors ${
+                media.isArchived ? 'text-amber-400 bg-amber-500/20' : 'text-white/80 hover:text-amber-400 hover:bg-white/10'
+              }`}
+            >
+              {media.isArchived ? <ArchiveRestore className="w-5 h-5" /> : <Archive className="w-5 h-5" />}
+            </button>
+          )}
 
           <button
             onClick={() => onTrash(media.id)}

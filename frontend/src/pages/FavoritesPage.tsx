@@ -13,6 +13,7 @@ interface FavoritesPageProps {
   onSelectGroup: (ids: string[]) => void;
   onClickMedia: (media: MediaItem, list: MediaItem[]) => void;
   onFavorite: (id: string, isFav: boolean) => void;
+  onRename?: (media: MediaItem) => void;
   reloadTrigger: number;
 }
 
@@ -22,6 +23,7 @@ export const FavoritesPage: React.FC<FavoritesPageProps> = ({
   onSelectGroup,
   onClickMedia,
   onFavorite,
+  onRename,
   reloadTrigger
 }) => {
   const [favorites, setFavorites] = useState<MediaItem[]>([]);
@@ -75,6 +77,7 @@ export const FavoritesPage: React.FC<FavoritesPageProps> = ({
           onSelectGroup={onSelectGroup}
           onClickMedia={item => onClickMedia(item, favorites)}
           onFavorite={onFavorite}
+          onRename={onRename}
         />
       )}
     </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Archive } from 'lucide-react';
+import { Archive, ArchiveRestore } from 'lucide-react';
 import { MediaItem } from '../types';
 import { mediaApi } from '../services/api';
 import { MediaGrid } from '../components/MediaGrid';
@@ -13,6 +13,8 @@ interface ArchivePageProps {
   onSelectGroup: (ids: string[]) => void;
   onClickMedia: (media: MediaItem, list: MediaItem[]) => void;
   onFavorite: (id: string, isFav: boolean) => void;
+  onUnarchive?: (ids: string[]) => void;
+  onRename?: (media: MediaItem) => void;
   reloadTrigger: number;
 }
 
@@ -22,6 +24,8 @@ export const ArchivePage: React.FC<ArchivePageProps> = ({
   onSelectGroup,
   onClickMedia,
   onFavorite,
+  onUnarchive,
+  onRename,
   reloadTrigger
 }) => {
   const [archived, setArchived] = useState<MediaItem[]>([]);
@@ -57,6 +61,16 @@ export const ArchivePage: React.FC<ArchivePageProps> = ({
             {archived.length} archived {archived.length === 1 ? 'item' : 'items'} • Hidden from main photos view
           </p>
         </div>
+
+        {selectedIds.length > 0 && onUnarchive && (
+          <button
+            onClick={() => onUnarchive(selectedIds)}
+            className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-xl text-xs font-bold shadow-md shadow-amber-500/25 active:scale-95 transition-all"
+          >
+            <ArchiveRestore className="w-4 h-4" />
+            <span>Unarchive ({selectedIds.length})</span>
+          </button>
+        )}
       </div>
 
       {isLoading ? (
@@ -75,6 +89,7 @@ export const ArchivePage: React.FC<ArchivePageProps> = ({
           onSelectGroup={onSelectGroup}
           onClickMedia={item => onClickMedia(item, archived)}
           onFavorite={onFavorite}
+          onRename={onRename}
         />
       )}
     </div>

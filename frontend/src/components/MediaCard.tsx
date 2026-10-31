@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Play, Heart, Check, Trash2, Archive, Share2, Download, Music } from 'lucide-react';
+import { Play, Heart, Check, Trash2, Archive, Share2, Download, Music, Pencil } from 'lucide-react';
 import { MediaItem } from '../types';
 import { formatDuration } from '../utils/formatters';
 
@@ -11,6 +11,7 @@ interface MediaCardProps {
   onFavorite?: (id: string, isFav: boolean) => void;
   onArchive?: (id: string) => void;
   onTrash?: (id: string) => void;
+  onRename?: (media: MediaItem) => void;
 }
 
 export const MediaCard: React.FC<MediaCardProps> = ({
@@ -19,6 +20,7 @@ export const MediaCard: React.FC<MediaCardProps> = ({
   onToggleSelect,
   onClick,
   onFavorite,
+  onRename
 }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const isVideo = media.mimeType.startsWith('video/');
@@ -109,23 +111,40 @@ export const MediaCard: React.FC<MediaCardProps> = ({
           <Check className={`w-3.5 h-3.5 stroke-[3] ${isSelected ? 'opacity-100' : 'opacity-75'}`} />
         </button>
 
-        {/* Favorite Quick Button */}
-        {onFavorite && (
-          <button
-            type="button"
-            onClick={e => {
-              e.stopPropagation();
-              onFavorite(media.id, !media.isFavorite);
-            }}
-            className={`p-1.5 rounded-lg transition-all ${
-              media.isFavorite
-                ? 'opacity-0' // already shown in bottom badge
-                : 'bg-black/40 text-white hover:text-rose-400 opacity-0 group-hover:opacity-100'
-            }`}
-          >
-            <Heart className="w-3.5 h-3.5" />
-          </button>
-        )}
+        <div className="flex items-center gap-1">
+          {/* Quick Rename Button */}
+          {onRename && (
+            <button
+              type="button"
+              onClick={e => {
+                e.stopPropagation();
+                onRename(media);
+              }}
+              title="Rename file"
+              className="p-1.5 rounded-lg bg-black/40 text-white hover:text-brand-300 opacity-0 group-hover:opacity-100 transition-all"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
+          )}
+
+          {/* Favorite Quick Button */}
+          {onFavorite && (
+            <button
+              type="button"
+              onClick={e => {
+                e.stopPropagation();
+                onFavorite(media.id, !media.isFavorite);
+              }}
+              className={`p-1.5 rounded-lg transition-all ${
+                media.isFavorite
+                  ? 'opacity-0' // already shown in bottom badge
+                  : 'bg-black/40 text-white hover:text-rose-400 opacity-0 group-hover:opacity-100'
+              }`}
+            >
+              <Heart className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Original Filename Tooltip on hover */}

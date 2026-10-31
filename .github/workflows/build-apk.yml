@@ -54,6 +54,13 @@ jobs:
           mkdir -p frontend/android/app/src/main/assets/public
           cp -r frontend/dist/. frontend/android/app/src/main/assets/public/
 
+      - name: Ensure Capacitor Cordova Plugins directory
+        run: |
+          mkdir -p frontend/android/capacitor-cordova-android-plugins
+          if [ ! -f frontend/android/capacitor-cordova-android-plugins/cordova.variables.gradle ]; then
+            echo "ext { cdvMinSdkVersion = 24; cdvPluginPostBuildExtras = []; cordovaConfig = [:] }" > frontend/android/capacitor-cordova-android-plugins/cordova.variables.gradle
+          fi
+
       - name: Grant gradlew execute permission
         working-directory: ./frontend/android
         run: chmod +x gradlew

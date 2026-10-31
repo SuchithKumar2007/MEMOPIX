@@ -15,6 +15,7 @@ interface PhotosPageProps {
   onClickMedia: (media: MediaItem, list: MediaItem[]) => void;
   onOpenUpload: () => void;
   onFavorite: (id: string, isFav: boolean) => void;
+  onRename?: (media: MediaItem) => void;
   reloadTrigger: number;
 }
 
@@ -26,6 +27,7 @@ export const PhotosPage: React.FC<PhotosPageProps> = ({
   onClickMedia,
   onOpenUpload,
   onFavorite,
+  onRename,
   reloadTrigger
 }) => {
   const [media, setMedia] = useState<MediaItem[]>([]);
@@ -108,6 +110,7 @@ export const PhotosPage: React.FC<PhotosPageProps> = ({
           onSelectGroup={onSelectGroup}
           onClickMedia={item => onClickMedia(item, media)}
           onFavorite={onFavorite}
+          onRename={onRename}
         />
       )}
     </div>
