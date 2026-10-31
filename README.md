@@ -2,6 +2,12 @@
 
 > **“Every Picture Becomes Your Memories”**
 
+[![GitHub](https://img.shields.io/badge/GitHub-SuchithKumar2007%2FMEMOPIX-181717?logo=github&style=flat-square)](https://github.com/SuchithKumar2007/MEMOPIX)
+[![Vercel](https://img.shields.io/badge/Live%20Demo-Vercel-000000?logo=vercel&style=flat-square)](https://memopix.vercel.app)
+
+🌐 **Live Demo**: https://memopix.vercel.app
+📦 **Repository**: https://github.com/SuchithKumar2007/MEMOPIX
+
 MEMOPIX is a production-ready, full-stack private cloud photo and video gallery application. It delivers Google Photos-level timeline organization, high-performance media processing, strict owner-only isolation, cryptographically secure sharing, and an enforced **5 TB (5,000,000,000,000 bytes)** private storage quota.
 
 ---
