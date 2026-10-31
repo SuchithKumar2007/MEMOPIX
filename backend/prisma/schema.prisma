@@ -1,0 +1,238 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                  String               @id @default(uuid())
+  email               String               @unique
+  name                String
+  passwordHash        String
+  avatarUrl           String?
+  termsAccepted       Boolean              @default(true)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  media               Media[]
+  albums              Album[]
+  folders             Folder[]
+  playlists           Playlist[]
+  uploadSessions      UploadSession[]
+  uploadActivities    UploadActivity[]
+  shareLinks          ShareLink[]
+  storageUsage        StorageUsage?
+  passwordResetTokens PasswordResetToken[]
+}
+
+model StorageUsage {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  usedBytes   BigInt   @default(0)
+  limitBytes  BigInt   @default(5000000000000) // 5 TB = 5,000,000,000,000 bytes
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Folder {
+  id          String    @id @default(uuid())
+  name        String
+  ownerId     String
+  parentId    String?
+  color       String?   @default("#4F46E5")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  owner       User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  parent      Folder?   @relation("FolderHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children    Folder[]  @relation("FolderHierarchy")
+  media       Media[]
+
+  @@index([ownerId])
+  @@index([parentId])
+}
+
+model Media {
+  id            String          @id @default(uuid())
+  ownerId       String
+  folderId      String?
+  fileName      String
+  originalName  String
+  mimeType      String
+  category      String?         // photo, video, audio, document, other
+  fileSize      BigInt
+  fileHash      String          // SHA-256 for duplicate detection
+  storagePath   String
+  thumbnailPath String?
+  width         Int?
+  height        Int?
+  duration      Float?          // Video or audio duration in seconds
+  isFavorite    Boolean         @default(false)
+  isArchived    Boolean         @default(false)
+  isDeleted     Boolean         @default(false)
+  deletedAt     DateTime?
+  takenAt       DateTime?
+  cameraModel   String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  owner         User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  folder        Folder?         @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  albumItems    AlbumMedia[]
+  playlistTracks PlaylistTrack[]
+  shareLinks    ShareLink[]
+
+  @@index([ownerId])
+  @@index([folderId])
+  @@index([ownerId, isDeleted, isArchived])
+  @@index([ownerId, isFavorite])
+  @@index([fileHash])
+  @@index([createdAt])
+}
+
+model Album {
+  id           String       @id @default(uuid())
+  ownerId      String
+  title        String
+  description  String?
+  coverMediaId String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  owner        User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  items        AlbumMedia[]
+  shareLinks   ShareLink[]
+
+  @@index([ownerId])
+}
+
+model AlbumMedia {
+  id        String   @id @default(uuid())
+  albumId   String
+  mediaId   String
+  addedAt   DateTime @default(now())
+
+  album     Album    @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  media     Media    @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@unique([albumId, mediaId])
+  @@index([albumId])
+  @@index([mediaId])
+}
+
+model Playlist {
+  id          String          @id @default(uuid())
+  ownerId     String
+  title       String
+  description String?
+  coverUrl    String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  owner       User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  tracks      PlaylistTrack[]
+
+  @@index([ownerId])
+}
+
+model PlaylistTrack {
+  id         String   @id @default(uuid())
+  playlistId String
+  mediaId    String
+  position   Int      @default(0)
+  addedAt    DateTime @default(now())
+
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  media      Media    @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@unique([playlistId, mediaId])
+  @@index([playlistId])
+  @@index([mediaId])
+}
+
+model UploadSession {
+  id          String       @id @default(uuid())
+  userId      String
+  fileName    String
+  fileSize    BigInt
+  mimeType    String
+  fileHash    String?
+  chunkSize   Int          @default(5242880) // 5 MB default chunk size
+  totalChunks Int
+  status      String       @default("active") // active, completed, aborted
+  tempDir     String
+  folderId    String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parts       UploadPart[]
+
+  @@index([userId, status])
+}
+
+model UploadPart {
+  id          String        @id @default(uuid())
+  sessionId   String
+  partNumber  Int
+  size        Int
+  etag        String?
+  uploadedAt  DateTime      @default(now())
+
+  session     UploadSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, partNumber])
+  @@index([sessionId])
+}
+
+model UploadActivity {
+  id          String   @id @default(uuid())
+  userId      String
+  fileName    String
+  fileSize    BigInt
+  status      String   // started, completed, failed, aborted
+  deviceInfo  String?
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model ShareLink {
+  id            String    @id @default(uuid())
+  tokenHash     String    @unique // Secure random token lookup
+  ownerId       String
+  mediaId       String?
+  albumId       String?
+  expiresAt     DateTime?
+  allowDownload Boolean   @default(true)
+  isActive      Boolean   @default(true)
+  viewCount     Int       @default(0)
+  createdAt     DateTime  @default(now())
+
+  owner         User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  media         Media?    @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  album         Album?    @relation(fields: [albumId], references: [id], onDelete: Cascade)
+
+  @@index([tokenHash])
+  @@index([ownerId])
+}
+
+model PasswordResetToken {
+  id         String   @id @default(uuid())
+  userId     String
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  used       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tokenHash])
+  @@index([userId])
+}

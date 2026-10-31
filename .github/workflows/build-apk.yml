@@ -1,0 +1,106 @@
+name: Build MEMOPIX Android APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Accept Android SDK Licenses & Install Components
+        run: |
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > frontend/android/local.properties
+          cat frontend/android/local.properties
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm ci --prefer-offline || npm install
+
+      - name: Build Web Application
+        working-directory: ./frontend
+        run: npm run build
+
+      - name: Copy built web assets into Android project
+        run: |
+          rm -rf frontend/android/app/src/main/assets/public
+          mkdir -p frontend/android/app/src/main/assets/public
+          cp -r frontend/dist/. frontend/android/app/src/main/assets/public/
+          echo "Web assets copied:"
+          ls frontend/android/app/src/main/assets/public/
+
+      - name: Grant gradlew execute permission
+        working-directory: ./frontend/android
+        run: chmod +x gradlew
+
+      - name: Build Debug APK
+        working-directory: ./frontend/android
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Stage APK
+        run: |
+          mkdir -p build-output
+          cp frontend/android/app/build/outputs/apk/debug/app-debug.apk build-output/MEMOPIX-Android-v1.0.0.apk
+          echo "APK built successfully:"
+          ls -lh build-output/
+
+      - name: Upload APK as Workflow Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MEMOPIX-Android-APK
+          path: build-output/MEMOPIX-Android-v1.0.0.apk
+          retention-days: 90
+
+      - name: Create GitHub Release with APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-latest
+          name: "📱 MEMOPIX Android APK - Latest Build"
+          body: |
+            ## 📱 MEMOPIX Android APK
+
+            Download and install on **any Android phone** to get the full MEMOPIX 5 TB private cloud experience.
+
+            ### ⚡ How to Install:
+            1. Download **`MEMOPIX-Android-v1.0.0.apk`** below
+            2. On Android: Settings → Security → **Enable "Install unknown apps"** for your browser
+            3. Tap the downloaded APK file → **Install**
+            4. Open **MEMOPIX** from your app drawer
+
+            ### 🔌 First Launch - Connect to Your Server:
+            - Tap the **⚙️ gear icon** on the login screen
+            - Enter your server address:
+              - **Home Wi-Fi:** `http://192.168.29.61:5000`
+              - **Worldwide (Mobile Data):** Paste your Cloudflare tunnel URL
+            - Tap **Save & Connect** → login!
+          files: build-output/MEMOPIX-Android-v1.0.0.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

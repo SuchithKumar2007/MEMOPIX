@@ -1,0 +1,56 @@
+﻿{
+  "name": "MEMOPIX - 5 TB Private Photo & Video Cloud",
+  "short_name": "MEMOPIX",
+  "description": "Preserve Every Moment in Full Fidelity. 5 TB Private Cloud Storage.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#070A11",
+  "theme_color": "#070A11",
+  "categories": ["photography", "productivity", "utilities", "entertainment"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Photos",
+      "url": "/?tab=photos",
+      "description": "View all photos in high resolution"
+    },
+    {
+      "name": "Videos",
+      "url": "/?tab=videos",
+      "description": "Stream unlimited HD/4K videos"
+    },
+    {
+      "name": "Music & Audio",
+      "url": "/?tab=audio",
+      "description": "Listen to your music tracks"
+    }
+  ]
+}
