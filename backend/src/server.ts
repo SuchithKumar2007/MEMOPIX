@@ -145,14 +145,14 @@ async function seedExistingUsers() {
       id: '3b0e7cf6-9a50-4dfe-ae3e-f8ff6ecd7e78',
       email: 'suchith@gmail.com',
       name: 'Suchith',
-      passwordHash: '$2a$12$pVsR0Fg5SeZd7bzZla/46.Gt/z8kbE04zinJz2yp.HM..VjNgVa2.',
+      passwordHash: '$2a$12$.hXZkESVAf9A6wYF/hsF.uApsm0K/vzxqErtyPd94EC3I7zko9kYm',
       avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop'
     },
     {
       id: '7e43e689-641d-4514-adec-372cc9f83ed3',
       email: 'suchith2007kumar@gmail.com',
       name: 'Suchith Kumar',
-      passwordHash: '$2a$12$AshtXQtCJtNoj1OyoOTzV.yRlQjL4GGYkfcKkWy117GmdlSH90JGC',
+      passwordHash: '$2a$12$.hXZkESVAf9A6wYF/hsF.uApsm0K/vzxqErtyPd94EC3I7zko9kYm',
       avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop'
     }
   ];
@@ -178,6 +178,12 @@ async function seedExistingUsers() {
           }
         });
         console.log(`[SEED] Automatically preserved account: ${u.email}`);
+      } else {
+        await prisma.user.update({
+          where: { email: u.email },
+          data: { passwordHash: u.passwordHash }
+        });
+        console.log(`[SEED] Synchronized password hash for: ${u.email}`);
       }
     } catch (err) {
       console.warn(`[SEED WARNING] ${u.email}:`, err);
