@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
 import path from 'path';
+import fs from 'fs';
 
 const frontendDist = path.resolve(__dirname, '../../frontend/dist');
 
@@ -99,12 +100,20 @@ app.use('/api/user', userRoutes);
 // Serve static frontend files from dist
 app.use(express.static(frontendDist));
 
-// SPA Fallback: All non-API routes return index.html
+// SPA Fallback: All non-API routes return index.html if present, else JSON status
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api')) {
     return next();
   }
-  res.sendFile(path.join(frontendDist, 'index.html'));
+  const indexPath = path.join(frontendDist, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    return res.sendFile(indexPath);
+  }
+  res.json({
+    status: 'ok',
+    message: 'MEMOPIX Backend API is running.',
+    frontend: process.env.FRONTEND_URL || 'https://memopix-tas.vercel.app'
+  });
 });
 
 // Global Error Handler
