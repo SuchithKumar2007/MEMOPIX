@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MEMOPIX - 5 TB Private Cloud Gallery Poster (Landscape 16:9)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    @page {
+      size: 1920px 1080px;
+      margin: 0;
+    }
+
+    body {
+      background-color: #030712;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #FFFFFF;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Fixed Landscape Canvas: 1920 x 1080 px (16:9) */
+    .poster-canvas {
+      width: 1920px;
+      height: 1080px;
+      position: relative;
+      background: radial-gradient(circle at 75% 30%, #152244 0%, #080f22 45%, #030611 100%);
+      overflow: hidden;
+      display: flex;
+      padding: 60px 80px;
+      box-shadow: 0 40px 120px rgba(0, 0, 0, 0.9);
+    }
+
+    /* Glowing ambient nebulas */
+    .glow-cyan {
+      position: absolute;
+      top: -150px;
+      left: 100px;
+      width: 800px;
+      height: 800px;
+      background: radial-gradient(circle, rgba(0, 240, 255, 0.18) 0%, rgba(0, 163, 255, 0.05) 50%, transparent 70%);
+      filter: blur(100px);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .glow-purple {
+      position: absolute;
+      bottom: -150px;
+      right: 200px;
+      width: 850px;
+      height: 850px;
+      background: radial-gradient(circle, rgba(168, 85, 247, 0.20) 0%, rgba(99, 102, 241, 0.06) 50%, transparent 70%);
+      filter: blur(100px);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .glow-pink {
+      position: absolute;
+      top: 200px;
+      right: -100px;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(236, 72, 153, 0.15) 0%, transparent 70%);
+      filter: blur(90px);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Geometric matrix grid */
+    .grid-overlay {
+      position: absolute;
+      inset: 0;
+      background-image: 
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 70px 70px;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .content-layout {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      width: 100%;
+      height: 100%;
+      gap: 70px;
+    }
+
+    /* ── LEFT COLUMN (60% Width) ── */
+    .left-col {
+      flex: 1.25;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .logo-img {
+      width: 68px;
+      height: 68px;
+      filter: drop-shadow(0 0 20px rgba(0, 229, 255, 0.5));
+    }
+
+    .brand-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 38px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      line-height: 1;
+    }
+
+    .brand-title span.pix {
+      background: linear-gradient(135deg, #00F0FF 0%, #818CF8 50%, #C084FC 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-sub {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 4px;
+      color: #38BDF8;
+      margin-top: 4px;
+      text-transform: uppercase;
+    }
+
+    .badges-row {
+      display: flex;
+      gap: 12px;
+    }
+
+    .pill-badge {
+      padding: 9px 18px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      backdrop-filter: blur(12px);
+    }
+
+    .pill-badge.highlight {
+      background: linear-gradient(135deg, rgba(168, 85, 247, 0.3), rgba(59, 130, 246, 0.3));
+      border-color: rgba(168, 85, 247, 0.5);
+      color: #E0E7FF;
+      box-shadow: 0 0 25px rgba(168, 85, 247, 0.35);
+    }
+
+    .pill-badge .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #00F0FF;
+      box-shadow: 0 0 10px #00F0FF;
+    }
+
+    /* Hero Text */
+    .hero-area {
+      margin: 10px 0;
+    }
+
+    .super-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 5px;
+      color: #A855F7;
+      text-transform: uppercase;
+      display: inline-block;
+      padding: 6px 16px;
+      background: rgba(168, 85, 247, 0.12);
+      border: 1px solid rgba(168, 85, 247, 0.3);
+      border-radius: 999px;
+      margin-bottom: 14px;
+    }
+
+    .hero-headline {
+      font-family: 'Outfit', sans-serif;
+      font-size: 64px;
+      font-weight: 900;
+      line-height: 1.08;
+      letter-spacing: -1.5px;
+      margin-bottom: 16px;
+    }
+
+    .hero-headline span.glow {
+      background: linear-gradient(135deg, #FFFFFF 10%, #7DD3FC 55%, #C084FC 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 0 35px rgba(56, 189, 248, 0.35));
+    }
+
+    .hero-desc {
+      font-size: 19px;
+      line-height: 1.5;
+      color: #94A3B8;
+      max-width: 900px;
+    }
+
+    .hero-desc strong {
+      color: #FFFFFF;
+      font-weight: 700;
+    }
+
+    /* 4-Box Highlight Grid */
+    .features-quad {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin: 12px 0;
+    }
+
+    .quad-item {
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      padding: 20px;
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .quad-item::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+    }
+
+    .quad-1::before { background: #00F0FF; }
+    .quad-2::before { background: #A855F7; }
+    .quad-3::before { background: #EC4899; }
+    .quad-4::before { background: #10B981; }
+
+    .quad-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .icon-cyan { background: rgba(0, 240, 255, 0.12); color: #00F0FF; border: 1px solid rgba(0, 240, 255, 0.25); }
+    .icon-purple { background: rgba(168, 85, 247, 0.12); color: #C084FC; border: 1px solid rgba(168, 85, 247, 0.25); }
+    .icon-pink { background: rgba(236, 72, 153, 0.12); color: #F472B6; border: 1px solid rgba(236, 72, 153, 0.25); }
+    .icon-emerald { background: rgba(16, 185, 129, 0.12); color: #34D399; border: 1px solid rgba(16, 185, 129, 0.25); }
+
+    .quad-body h4 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 17px;
+      font-weight: 800;
+      color: #F8FAFC;
+      margin-bottom: 4px;
+    }
+
+    .quad-body p {
+      font-size: 13px;
+      color: #94A3B8;
+      line-height: 1.4;
+    }
+
+    /* Footer Row */
+    .footer-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding-top: 20px;
+    }
+
+    .cta-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .cta-heading {
+      font-family: 'Outfit', sans-serif;
+      font-size: 20px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .cta-link {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      color: #38BDF8;
+      font-weight: 700;
+      margin-top: 3px;
+    }
+
+    .platform-badges {
+      display: flex;
+      gap: 12px;
+    }
+
+    .p-btn {
+      padding: 12px 24px;
+      border-radius: 14px;
+      font-size: 13px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .p-web {
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .p-android {
+      background: linear-gradient(135deg, #0284C7 0%, #2563EB 50%, #7C3AED 100%);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 8px 25px rgba(37, 99, 235, 0.35);
+    }
+
+    /* ── RIGHT COLUMN (40% Width - Device Showcase & Stats) ── */
+    .right-col {
+      flex: 0.95;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+    }
+
+    /* Floating Stat Badges */
+    .stats-pills {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .mini-stat-card {
+      flex: 1;
+      background: rgba(15, 23, 42, 0.7);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 18px;
+      padding: 14px 16px;
+      text-align: center;
+    }
+
+    .mini-stat-val {
+      font-family: 'Outfit', sans-serif;
+      font-size: 26px;
+      font-weight: 900;
+      background: linear-gradient(135deg, #00F0FF, #A855F7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      line-height: 1;
+    }
+
+    .mini-stat-lbl {
+      font-size: 10px;
+      font-weight: 700;
+      color: #94A3B8;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 5px;
+    }
+
+    /* Phone Device Showcase */
+    .phone-stage {
+      position: relative;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .phone-frame {
+      width: 440px;
+      height: 680px;
+      background: #080D1A;
+      border: 6px solid #1E293B;
+      border-radius: 46px;
+      box-shadow: 
+        0 0 0 2px rgba(255, 255, 255, 0.12),
+        0 30px 80px rgba(0, 0, 0, 0.8),
+        0 0 90px rgba(168, 85, 247, 0.25);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .phone-notch {
+      width: 130px;
+      height: 20px;
+      background: #000000;
+      border-radius: 0 0 14px 14px;
+      margin: 0 auto;
+      z-index: 10;
+    }
+
+    .phone-inner {
+      flex: 1;
+      padding: 14px 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding-bottom: 10px;
+    }
+
+    .app-brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 800;
+      font-size: 15px;
+    }
+
+    .app-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 8px;
+      background: rgba(14, 165, 233, 0.15);
+      border: 1px solid rgba(14, 165, 233, 0.35);
+      color: #38BDF8;
+      border-radius: 999px;
+    }
+
+    /* Photo grid inside mockup */
+    .app-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin: 12px 0;
+    }
+
+    .app-thumb {
+      aspect-ratio: 1;
+      border-radius: 12px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+    }
+
+    .t1 { background: linear-gradient(135deg, #FF6B6B, #556270); }
+    .t2 { background: linear-gradient(135deg, #4ECDC4, #556270); }
+    .t3 { background: linear-gradient(135deg, #C7F464, #4ECDC4); }
+    .t4 { background: linear-gradient(135deg, #A855F7, #EC4899); }
+    .t5 { background: linear-gradient(135deg, #3B82F6, #1D4ED8); }
+    .t6 { background: linear-gradient(135deg, #F59E0B, #EF4444); }
+
+    .tag-hdr {
+      position: absolute;
+      bottom: 3px;
+      right: 3px;
+      background: rgba(0,0,0,0.65);
+      color: #fff;
+      font-size: 8px;
+      padding: 2px 4px;
+      border-radius: 3px;
+      font-weight: 700;
+    }
+
+    /* Live Vinyl Player in Mockup */
+    .app-player {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(168, 85, 247, 0.35);
+      border-radius: 16px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .vinyl-spinner {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #8B5CF6 30%, #1E1B4B 70%);
+      border: 2px solid #C084FC;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 12px rgba(168, 85, 247, 0.5);
+    }
+
+    .player-text {
+      flex: 1;
+    }
+
+    .song-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .song-sub {
+      font-size: 10px;
+      color: #94A3B8;
+    }
+
+    .app-nav {
+      display: flex;
+      justify-content: space-around;
+      padding-top: 10px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 10px;
+      color: #94A3B8;
+      font-weight: 600;
+    }
+
+    .nav-active {
+      color: #38BDF8;
+    }
+
+    /* Floating callout badges beside mockup */
+    .fly-tag {
+      position: absolute;
+      background: rgba(15, 23, 42, 0.9);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 18px;
+      padding: 14px 18px;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
+      z-index: 10;
+      max-width: 210px;
+    }
+
+    .fly-top {
+      top: 40px;
+      left: -20px;
+      border-left: 4px solid #00F0FF;
+    }
+
+    .fly-bottom {
+      bottom: 40px;
+      right: -20px;
+      border-right: 4px solid #EC4899;
+    }
+
+    .fly-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 2px;
+    }
+
+    .fly-desc {
+      font-size: 11px;
+      color: #94A3B8;
+      line-height: 1.35;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="poster-canvas">
+    <!-- Glowing Nebulas -->
+    <div class="glow-cyan"></div>
+    <div class="glow-purple"></div>
+    <div class="glow-pink"></div>
+    <div class="grid-overlay"></div>
+
+    <div class="content-layout">
+
+      <!-- ── LEFT COLUMN (60%) ── -->
+      <div class="left-col">
+
+        <!-- Header -->
+        <div class="header">
+          <div class="brand-wrap">
+            <img src="assets/logo.svg" alt="MEMOPIX Logo" class="logo-img" />
+            <div>
+              <h1 class="brand-title">MEMO<span class="pix">PIX</span></h1>
+              <div class="brand-sub">5 TB Private Cloud Gallery</div>
+            </div>
+          </div>
+
+          <div class="badges-row">
+            <div class="pill-badge highlight">
+              <span class="dot"></span>
+              <span>5,000 GB QUOTA</span>
+            </div>
+            <div class="pill-badge">
+              <span>ZERO SUBSCRIPTION FEES</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hero Area -->
+        <div class="hero-area">
+          <span class="super-tag">NEXT-GEN PRIVATE CLOUD ARCHITECTURE</span>
+          <h2 class="hero-headline">
+            All Your Memories.<br />
+            <span class="glow">One Giant 5 TB Vault.</span>
+          </h2>
+          <p class="hero-desc">
+            Free your mobile and computer storage forever. Safely preserve <strong>1.5 Million+ photos</strong>, stream <strong>unlimited 4K HDR videos</strong>, and play your <strong>lossless audio collection</strong> anywhere with cryptographic privacy.
+          </p>
+        </div>
+
+        <!-- 4 Key Feature Highlight Cards -->
+        <div class="features-quad">
+          <!-- 1. 5 TB Space -->
+          <div class="quad-item quad-1">
+            <div class="quad-icon icon-cyan">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>
+            </div>
+            <div class="quad-body">
+              <h4>5 TB Massive Space</h4>
+              <p>5,000,000,000,000 bytes dedicated quota. Huge capacity for millions of memories.</p>
+            </div>
+          </div>
+
+          <!-- 2. Resumable Uploads -->
+          <div class="quad-item quad-2">
+            <div class="quad-icon icon-purple">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </div>
+            <div class="quad-body">
+              <h4>Unlimited File Uploads</h4>
+              <p>Upload 10GB, 50GB, 100GB+ 4K movies with auto-pause, resume &amp; zero memory bloat.</p>
+            </div>
+          </div>
+
+          <!-- 3. Built-in Music Player -->
+          <div class="quad-item quad-3">
+            <div class="quad-icon icon-pink">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="4"/></svg>
+            </div>
+            <div class="quad-body">
+              <h4>Vinyl Music Player</h4>
+              <p>Stream MP3, WAV, FLAC &amp; AAC. Reorder tracks, make playlists &amp; play in background.</p>
+            </div>
+          </div>
+
+          <!-- 4. Military Privacy -->
+          <div class="quad-item quad-4">
+            <div class="quad-icon icon-emerald">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <div class="quad-body">
+              <h4>100% Private &amp; HMAC Secured</h4>
+              <p>Cryptographic signed stream tokens. Zero third-party tracking, private owner isolation.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer Bar -->
+        <div class="footer-bar">
+          <div class="cta-info">
+            <div class="cta-heading">Ready for 5 TB Unlimited Storage?</div>
+            <div class="cta-link">https://memopix-tau.vercel.app</div>
+          </div>
+
+          <div class="platform-badges">
+            <div class="p-btn p-web">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              <span>Web Browser</span>
+            </div>
+            <div class="p-btn p-android">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-1.0001s.4482-1.0001.9993-1.0001c.552 0 .9997.4486.9997 1.0001s-.4477 1.0001-.9997 1.0001m-11.046 0c-.5511 0-.9993-.4486-.9993-1.0001s.4482-1.0001.9993-1.0001c.552 0 .9997.4486.9997 1.0001s-.4477 1.0001-.9997 1.0001m11.4055-6.02l1.9973-3.4592a.416.416 0 0 0-.1521-.5676.416.416 0 0 0-.5676.1521l-2.0223 3.503C15.5902 8.4116 13.8533 8.125 12 8.125c-1.8533 0-3.5902.2866-5.1388.8247L4.8389 5.4467a.4161.4161 0 0 0-.5677-.1521.4157.4157 0 0 0-.152.5676l1.9972 3.4592C2.6889 11.1867.343 14.6589 0 18.75h24c-.343-4.0911-2.6889-7.5633-6.1175-9.4286"/></svg>
+              <span>Android APK</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ── RIGHT COLUMN (40%) ── -->
+      <div class="right-col">
+
+        <!-- 3 Mini Stat Pills -->
+        <div class="stats-pills">
+          <div class="mini-stat-card">
+            <div class="mini-stat-val">5,000 GB</div>
+            <div class="mini-stat-lbl">Capacity</div>
+          </div>
+          <div class="mini-stat-card">
+            <div class="mini-stat-val">NO LIMIT</div>
+            <div class="mini-stat-lbl">File Size</div>
+          </div>
+          <div class="mini-stat-card">
+            <div class="mini-stat-val">4K HDR</div>
+            <div class="mini-stat-lbl">Resolution</div>
+          </div>
+        </div>
+
+        <!-- Phone Stage with Floating Callouts -->
+        <div class="phone-stage">
+          <!-- Floating Callout Top -->
+          <div class="fly-tag fly-top">
+            <div class="fly-title">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#00F0FF" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Instant Cloud Sync</span>
+            </div>
+            <p class="fly-desc">Real-time sync between your phone &amp; PC browser.</p>
+          </div>
+
+          <!-- Phone Mockup Frame -->
+          <div class="phone-frame">
+            <div class="phone-notch"></div>
+            <div class="phone-inner">
+              <div class="app-header">
+                <div class="app-brand">
+                  <img src="assets/logo.svg" style="width:20px;height:20px;" />
+                  <span>MEMOPIX</span>
+                </div>
+                <div class="app-badge">5,000 GB Active</div>
+              </div>
+
+              <!-- Photo Gallery Grid -->
+              <div class="app-grid">
+                <div class="app-thumb t1"><span class="tag-hdr">4K HDR</span></div>
+                <div class="app-thumb t2"><span class="tag-hdr">RAW</span></div>
+                <div class="app-thumb t3"><span class="tag-hdr">PHOTO</span></div>
+                <div class="app-thumb t4"><span class="tag-hdr">VIDEO</span></div>
+                <div class="app-thumb t5"><span class="tag-hdr">ALBUM</span></div>
+                <div class="app-thumb t6"><span class="tag-hdr">MEMORIES</span></div>
+              </div>
+
+              <!-- Vinyl Music Player Dock -->
+              <div class="app-player">
+                <div class="vinyl-spinner">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+                </div>
+                <div class="player-text">
+                  <div class="song-title">Cyber Sunset Waves.mp3</div>
+                  <div class="song-sub">Lossless FLAC • 5 TB Private Music</div>
+                </div>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="#00F0FF"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+              </div>
+
+              <!-- Bottom Nav -->
+              <div class="app-nav">
+                <div>All</div>
+                <div class="nav-active">Photos</div>
+                <div>Videos</div>
+                <div>Music</div>
+                <div>Folders</div>
+                <div>Albums</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Floating Callout Bottom -->
+          <div class="fly-tag fly-bottom">
+            <div class="fly-title">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              <span>100% Free Storage</span>
+            </div>
+            <p class="fly-desc">Zero recurring monthly cloud subscription fees.</p>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>
