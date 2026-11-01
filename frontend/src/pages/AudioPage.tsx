@@ -13,7 +13,9 @@ import {
   GripVertical,
   RotateCcw,
   Check,
-  Edit2
+  Edit2,
+  ArrowLeft,
+  ListPlus
 } from 'lucide-react';
 import { MediaItem, Playlist } from '../types';
 import { mediaApi, playlistApi } from '../services/api';
@@ -22,6 +24,8 @@ import { EmptyState } from '../components/EmptyState';
 import { useToast } from '../context/ToastContext';
 import { useMusicPlayer } from '../context/MusicPlayerContext';
 import { formatDuration, formatBytes } from '../utils/formatters';
+import { AddToPlaylistModal } from '../components/AddToPlaylistModal';
+import { SelectSongsModal } from '../components/SelectSongsModal';
 
 interface AudioPageProps {
   searchQuery: string;
@@ -53,6 +57,11 @@ export const AudioPage: React.FC<AudioPageProps> = ({
   const [isCreatingPlaylist, setIsCreatingPlaylist] = useState(false);
   const [newPlaylistTitle, setNewPlaylistTitle] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+
+  // Playlist Modals
+  const [isAddToPlaylistOpen, setIsAddToPlaylistOpen] = useState(false);
+  const [addToPlaylistTargetIds, setAddToPlaylistTargetIds] = useState<string[]>([]);
+  const [isSelectSongsOpen, setIsSelectSongsOpen] = useState(false);
 
   // Drag-to-reorder state
   const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -214,6 +223,30 @@ export const AudioPage: React.FC<AudioPageProps> = ({
     }
   };
 
+  const handleRemoveTrackFromPlaylist = async (mediaId: string, trackTitle: string) => {
+    if (!selectedPlaylist) return;
+    try {
+      await playlistApi.removeTrack(selectedPlaylist.id, mediaId);
+      success(`Removed "${trackTitle}" from playlist.`);
+      const res = await playlistApi.getById(selectedPlaylist.id);
+      if (res.success && res.data) {
+        setSelectedPlaylist(res.data);
+      }
+      loadAudio();
+    } catch {
+      error('Failed to remove track from playlist.');
+    }
+  };
+
+  const handlePlaylistSongsAdded = async () => {
+    if (!selectedPlaylist) return;
+    const res = await playlistApi.getById(selectedPlaylist.id);
+    if (res.success && res.data) {
+      setSelectedPlaylist(res.data);
+    }
+    loadAudio();
+  };
+
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-24">
       {/* Page Header */}
@@ -354,9 +387,21 @@ export const AudioPage: React.FC<AudioPageProps> = ({
                 </div>
 
                 {selectedIds && selectedIds.length > 0 && (
-                  <span className="text-[11px] font-bold text-purple-600 dark:text-purple-400">
-                    {selectedIds.length} of {tracks.length} selected
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold text-purple-600 dark:text-purple-400">
+                      {selectedIds.length} of {tracks.length} selected
+                    </span>
+                    <button
+                      onClick={() => {
+                        setAddToPlaylistTargetIds(selectedIds);
+                        setIsAddToPlaylistOpen(true);
+                      }}
+                      className="flex items-center gap-1 px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[11px] font-bold shadow-sm transition-all active:scale-95"
+                    >
+                      <ListPlus className="w-3.5 h-3.5" />
+                      <span>Add to Playlist</span>
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -468,6 +513,19 @@ export const AudioPage: React.FC<AudioPageProps> = ({
                         </button>
                       )}
 
+                      {/* Add to Playlist Button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setAddToPlaylistTargetIds([track.id]);
+                          setIsAddToPlaylistOpen(true);
+                        }}
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/30 opacity-70 sm:opacity-0 group-hover:opacity-100 transition-colors"
+                        title="Add to Playlist"
+                      >
+                        <FolderPlus className="w-4 h-4 text-purple-500/80 hover:text-purple-600" />
+                      </button>
+
                       {/* Delete Button */}
                       <button
                         onClick={(e) => handleDeleteTrack(e, track)}
@@ -489,86 +547,253 @@ export const AudioPage: React.FC<AudioPageProps> = ({
         )
       ) : (
         /* ── PLAYLISTS VIEW ──────────────────────────────────────────────── */
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200">
-              Your Playlists
-            </h3>
-            <button
-              onClick={() => setIsCreatingPlaylist(true)}
-              className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 active:scale-95 transition-all"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Create Playlist</span>
-            </button>
-          </div>
-
-          {/* Create Playlist Inline Form */}
-          {isCreatingPlaylist && (
-            <form onSubmit={handleCreatePlaylist} className="p-4 rounded-2xl bg-white dark:bg-[#121824] border border-purple-500/30 flex gap-2">
-              <input
-                type="text"
-                placeholder="Playlist Name (e.g. Chill Beats, Gym Workout)..."
-                value={newPlaylistTitle}
-                onChange={e => setNewPlaylistTitle(e.target.value)}
-                className="flex-1 px-3 py-2 bg-gray-50 dark:bg-[#161D2B] border border-gray-200 dark:border-gray-800 rounded-xl text-xs outline-none focus:border-purple-500 text-gray-900 dark:text-white"
-                autoFocus
-              />
-              <button
-                type="submit"
-                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl"
-              >
-                Create
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsCreatingPlaylist(false)}
-                className="px-3 py-2 bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-xl"
-              >
-                Cancel
-              </button>
-            </form>
-          )}
-
-          {playlists.length === 0 ? (
-            <EmptyState
-              icon={ListMusic}
-              title="No playlists created yet"
-              description="Group your favorite audio tracks into custom playlists."
-              actionText="Create First Playlist"
-              onAction={() => setIsCreatingPlaylist(true)}
-            />
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              {playlists.map((playlist) => (
-                <div
-                  key={playlist.id}
-                  onClick={async () => {
-                    const res = await playlistApi.getById(playlist.id);
-                    if (res.success && res.data) {
-                      setSelectedPlaylist(res.data);
-                      if (res.data.tracks && res.data.tracks.length > 0) {
-                        const mediaList = res.data.tracks.map((t: any) => t.media);
-                        playTrack(mediaList[0], mediaList);
-                      }
-                    }
-                  }}
-                  className="p-4 rounded-3xl bg-white dark:bg-[#121824] border border-gray-200 dark:border-[#26334D] hover:border-purple-500/50 hover:shadow-lg transition-all cursor-pointer group"
+        selectedPlaylist ? (
+          /* ── PLAYLIST DETAIL VIEW ─────────────────────────────────────── */
+          <div className="space-y-6 animate-fade-in">
+            {/* Back Button & Playlist Info */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-[#121824] border border-gray-200 dark:border-[#26334D] p-5 sm:p-6 rounded-3xl shadow-sm">
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => setSelectedPlaylist(null)}
+                  className="p-2.5 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 rounded-2xl transition-colors active:scale-95"
+                  title="Back to all playlists"
                 >
-                  <div className="w-full aspect-square rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center mb-3 shadow-md">
-                    <Disc3 className="w-12 h-12 text-white group-hover:scale-110 transition-transform" />
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-white shadow-lg flex-shrink-0">
+                  <Disc3 className="w-8 h-8 sm:w-10 sm:h-10 animate-spin-slow" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-950 px-2 py-0.5 rounded-full border border-purple-200 dark:border-purple-800">
+                      Playlist
+                    </span>
                   </div>
-                  <h4 className="font-bold text-xs sm:text-sm text-gray-900 dark:text-white truncate">
-                    {playlist.title}
-                  </h4>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
-                    {playlist.trackCount} {playlist.trackCount === 1 ? 'Track' : 'Tracks'}
+                  <h2 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white mt-1 truncate">
+                    {selectedPlaylist.title}
+                  </h2>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    {selectedPlaylist.tracks?.length || 0} {(selectedPlaylist.tracks?.length || 0) === 1 ? 'song' : 'songs'} in playlist
                   </p>
                 </div>
-              ))}
+              </div>
+
+              {/* Action Buttons: Play All, Shuffle, + Add Songs, Delete */}
+              <div className="flex items-center gap-2 flex-wrap sm:self-center">
+                {selectedPlaylist.tracks && selectedPlaylist.tracks.length > 0 && (
+                  <>
+                    <button
+                      onClick={() => {
+                        const list = (selectedPlaylist.tracks || []).map((t: any) => t.media);
+                        if (list.length > 0) playTrack(list[0], list);
+                      }}
+                      className="flex items-center gap-1.5 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-purple-500/20 active:scale-95"
+                    >
+                      <Play className="w-4 h-4 fill-white" />
+                      <span>Play All</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        const list = (selectedPlaylist.tracks || []).map((t: any) => t.media);
+                        const shuffled = [...list].sort(() => Math.random() - 0.5);
+                        if (shuffled.length > 0) playTrack(shuffled[0], shuffled);
+                      }}
+                      className="flex items-center gap-1.5 px-3.5 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl text-xs font-bold transition-all active:scale-95"
+                    >
+                      <Shuffle className="w-4 h-4 text-purple-500" />
+                      <span>Shuffle</span>
+                    </button>
+                  </>
+                )}
+
+                {/* + Add Songs Button */}
+                <button
+                  onClick={() => setIsSelectSongsOpen(true)}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-purple-500/20 active:scale-95"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add Songs</span>
+                </button>
+
+                <button
+                  onClick={() => handleDeletePlaylist(selectedPlaylist.id)}
+                  className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl transition-colors"
+                  title="Delete Playlist"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
-          )}
-        </div>
+
+            {/* Tracks List inside Playlist */}
+            {(!selectedPlaylist.tracks || selectedPlaylist.tracks.length === 0) ? (
+              <EmptyState
+                icon={ListMusic}
+                title="This playlist has no songs yet"
+                description="Add your favorite audio tracks to this playlist to stream them in order."
+                actionText="Add Songs to Playlist"
+                onAction={() => setIsSelectSongsOpen(true)}
+              />
+            ) : (
+              <div className="bg-white dark:bg-[#121824] border border-gray-200 dark:border-[#26334D] rounded-3xl overflow-hidden shadow-sm divide-y divide-gray-100 dark:divide-gray-800/80">
+                {selectedPlaylist.tracks.map((t: any, index: number) => {
+                  const media = t.media;
+                  const isCurrent = currentTrack?.id === media.id;
+                  const cleanName = media.originalName.replace(/\.[^/.]+$/, '');
+                  const list = (selectedPlaylist.tracks || []).map((x: any) => x.media);
+
+                  return (
+                    <div
+                      key={t.id || media.id}
+                      onClick={() => playTrack(media, list)}
+                      className={`flex items-center justify-between px-3 sm:px-6 py-2.5 sm:py-3 cursor-pointer transition-colors group ${
+                        isCurrent ? 'bg-purple-50/80 dark:bg-purple-950/30 font-semibold' : 'hover:bg-gray-50 dark:hover:bg-[#161D2B]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-300">
+                          {isCurrent && isPlaying ? (
+                            <Disc3 className="w-4 h-4 animate-spin-slow text-purple-600 dark:text-purple-400" />
+                          ) : (
+                            <span className="text-xs group-hover:hidden">{index + 1}</span>
+                          )}
+                          <Play className={`w-3.5 h-3.5 hidden group-hover:block ml-0.5 ${isCurrent ? 'text-purple-600' : ''}`} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className={`text-xs sm:text-sm truncate ${
+                            isCurrent ? 'text-purple-600 dark:text-purple-400 font-bold' : 'text-gray-900 dark:text-white'
+                          }`}>
+                            {cleanName}
+                          </p>
+                          <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
+                            {formatBytes(media.fileSize)} • MP3 Audio
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveTrackFromPlaylist(media.id, cleanName);
+                          }}
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 opacity-70 sm:opacity-0 group-hover:opacity-100 transition-colors"
+                          title="Remove from playlist"
+                        >
+                          <Trash2 className="w-4 h-4 text-red-500/70 hover:text-red-600" />
+                        </button>
+                        <span className="text-xs font-mono text-gray-400 hidden sm:block ml-1">
+                          {media.duration ? formatDuration(media.duration) : '--:--'}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ) : (
+          /* Playlists Grid */
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200">
+                Your Playlists
+              </h3>
+              <button
+                onClick={() => setIsCreatingPlaylist(true)}
+                className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 active:scale-95 transition-all shadow-sm"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Create Playlist</span>
+              </button>
+            </div>
+
+            {/* Create Playlist Inline Form */}
+            {isCreatingPlaylist && (
+              <form onSubmit={handleCreatePlaylist} className="p-4 rounded-2xl bg-white dark:bg-[#121824] border border-purple-500/30 flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Playlist Name (e.g. Chill Beats, Gym Workout)..."
+                  value={newPlaylistTitle}
+                  onChange={e => setNewPlaylistTitle(e.target.value)}
+                  className="flex-1 px-3 py-2 bg-gray-50 dark:bg-[#161D2B] border border-gray-200 dark:border-gray-800 rounded-xl text-xs outline-none focus:border-purple-500 text-gray-900 dark:text-white"
+                  autoFocus
+                />
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl"
+                >
+                  Create
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsCreatingPlaylist(false)}
+                  className="px-3 py-2 bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-xl"
+                >
+                  Cancel
+                </button>
+              </form>
+            )}
+
+            {playlists.length === 0 ? (
+              <EmptyState
+                icon={ListMusic}
+                title="No playlists created yet"
+                description="Group your favorite audio tracks into custom playlists."
+                actionText="Create First Playlist"
+                onAction={() => setIsCreatingPlaylist(true)}
+              />
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                {playlists.map((playlist) => (
+                  <div
+                    key={playlist.id}
+                    onClick={async () => {
+                      const res = await playlistApi.getById(playlist.id);
+                      if (res.success && res.data) {
+                        setSelectedPlaylist(res.data);
+                      }
+                    }}
+                    className="p-4 rounded-3xl bg-white dark:bg-[#121824] border border-gray-200 dark:border-[#26334D] hover:border-purple-500/50 hover:shadow-lg transition-all cursor-pointer group"
+                  >
+                    <div className="w-full aspect-square rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center mb-3 shadow-md group-hover:scale-[1.02] transition-transform">
+                      <Disc3 className="w-12 h-12 text-white group-hover:scale-110 transition-transform" />
+                    </div>
+                    <h4 className="font-bold text-xs sm:text-sm text-gray-900 dark:text-white truncate">
+                      {playlist.title}
+                    </h4>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                      {playlist.trackCount} {playlist.trackCount === 1 ? 'Track' : 'Tracks'}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )
+      )}
+
+      {/* Add To Playlist Modal (from All Songs row or multi-select) */}
+      <AddToPlaylistModal
+        isOpen={isAddToPlaylistOpen}
+        onClose={() => {
+          setIsAddToPlaylistOpen(false);
+          setAddToPlaylistTargetIds([]);
+        }}
+        mediaIds={addToPlaylistTargetIds}
+        onSuccess={loadAudio}
+      />
+
+      {/* Select Songs For Current Playlist Modal */}
+      {selectedPlaylist && (
+        <SelectSongsModal
+          isOpen={isSelectSongsOpen}
+          onClose={() => setIsSelectSongsOpen(false)}
+          playlistId={selectedPlaylist.id}
+          playlistTitle={selectedPlaylist.title}
+          existingMediaIds={selectedPlaylist.tracks?.map((t: any) => t.media.id) || []}
+          onSuccess={handlePlaylistSongsAdded}
+        />
       )}
     </div>
   );

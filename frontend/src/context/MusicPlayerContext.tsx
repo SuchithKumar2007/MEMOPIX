@@ -54,6 +54,34 @@ export const MusicPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
   const [showQueue, setShowQueue] = useState<boolean>(false);
 
+  // Keep live refs to prevent stale closure bugs in Audio element events
+  const queueRef = useRef<MediaItem[]>([]);
+  const currentIndexRef = useRef<number>(-1);
+  const currentTrackRef = useRef<MediaItem | null>(null);
+  const repeatModeRef = useRef<'none' | 'all' | 'one'>('none');
+  const isShuffleRef = useRef<boolean>(false);
+  const playTrackRef = useRef<((track: MediaItem, newQueue?: MediaItem[]) => void) | null>(null);
+
+  useEffect(() => {
+    queueRef.current = queue;
+  }, [queue]);
+
+  useEffect(() => {
+    currentIndexRef.current = currentIndex;
+  }, [currentIndex]);
+
+  useEffect(() => {
+    currentTrackRef.current = currentTrack;
+  }, [currentTrack]);
+
+  useEffect(() => {
+    repeatModeRef.current = repeatMode;
+  }, [repeatMode]);
+
+  useEffect(() => {
+    isShuffleRef.current = isShuffle;
+  }, [isShuffle]);
+
   // Initialize HTML5 Audio element with CORS & streaming support
   useEffect(() => {
     const audio = new Audio();
@@ -72,7 +100,37 @@ export const MusicPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       setIsPlaying(true);
     };
     const onCanPlay = () => setIsBuffering(false);
-    const onEnded = () => handleTrackEnded();
+    const onEnded = () => {
+      const q = queueRef.current;
+      const cIdx = currentIndexRef.current;
+      const mode = repeatModeRef.current;
+      const playerAudio = audioRef.current;
+      const playFn = playTrackRef.current;
+
+      if (!playerAudio || q.length === 0 || !playFn) return;
+
+      if (mode === 'one') {
+        playerAudio.currentTime = 0;
+        playerAudio.play().catch(() => {});
+        return;
+      }
+
+      let nextIdx: number;
+      if (isShuffleRef.current) {
+        nextIdx = Math.floor(Math.random() * q.length);
+      } else {
+        nextIdx = cIdx + 1;
+        if (nextIdx >= q.length) {
+          // Loop to start of playlist so playback never stops
+          nextIdx = 0;
+        }
+      }
+
+      const nextSong = q[nextIdx];
+      if (nextSong) {
+        playFn(nextSong, q);
+      }
+    };
     const onPause = () => setIsPlaying(false);
     const onError = () => {
       const err = audio.error;
@@ -150,7 +208,7 @@ export const MusicPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     if (!audioRef.current) return;
 
     // If tapping same track, toggle play/pause
-    if (currentTrack?.id === track.id) {
+    if (currentTrackRef.current?.id === track.id) {
       if (isPlaying) {
         audioRef.current.pause();
       } else {
@@ -165,22 +223,27 @@ export const MusicPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       return;
     }
 
-    let targetQueue = queue;
+    let targetQueue = queueRef.current;
     if (newQueue && newQueue.length > 0) {
       targetQueue = newQueue;
       setQueue(newQueue);
-    } else if (!queue.some(t => t.id === track.id)) {
-      targetQueue = [track, ...queue];
+      queueRef.current = newQueue;
+    } else if (!targetQueue.some(t => t.id === track.id)) {
+      targetQueue = [track, ...targetQueue];
       setQueue(targetQueue);
+      queueRef.current = targetQueue;
     }
 
     const idx = targetQueue.findIndex(t => t.id === track.id);
-    setCurrentIndex(idx !== -1 ? idx : 0);
+    const resolvedIdx = idx !== -1 ? idx : 0;
+    setCurrentIndex(resolvedIdx);
+    currentIndexRef.current = resolvedIdx;
 
     // Resolve to absolute backend URL (fixes Vercel proxy limits & mobile APK localhost issue)
     const streamUrl = resolveMediaUrl(track.streamUrl);
     const resolvedTrack = { ...track, streamUrl };
     setCurrentTrack(resolvedTrack);
+    currentTrackRef.current = resolvedTrack;
     setCurrentTime(0);
     setDuration(0);
     setIsBuffering(true);
@@ -215,7 +278,11 @@ export const MusicPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       const filtered = recent.filter((r: any) => r.id !== track.id);
       localStorage.setItem('memopix_recently_played', JSON.stringify([resolvedTrack, ...filtered].slice(0, 50)));
     } catch {}
-  }, [queue, volume, isMuted, currentTrack, isPlaying]);
+  }, [volume, isMuted, isPlaying]);
+
+  useEffect(() => {
+    playTrackRef.current = playTrack;
+  }, [playTrack]);
 
   const togglePlay = useCallback(() => {
     if (!audioRef.current || !currentTrack) return;
@@ -239,38 +306,34 @@ export const MusicPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, [isPlaying, currentTrack]);
 
   const nextTrack = useCallback(() => {
-    if (queue.length === 0) return;
+    const q = queueRef.current;
+    if (q.length === 0) return;
 
-    if (repeatMode === 'one' && currentTrack) {
-      if (audioRef.current) {
-        audioRef.current.currentTime = 0;
-        audioRef.current.play().catch(() => {});
-      }
+    if (repeatModeRef.current === 'one' && audioRef.current) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play().catch(() => {});
       return;
     }
 
     let nextIdx: number;
-    if (isShuffle) {
-      nextIdx = Math.floor(Math.random() * queue.length);
+    if (isShuffleRef.current) {
+      nextIdx = Math.floor(Math.random() * q.length);
     } else {
-      nextIdx = currentIndex + 1;
-      if (nextIdx >= queue.length) {
-        if (repeatMode === 'all') {
-          nextIdx = 0;
-        } else {
-          return; // reached end
-        }
+      nextIdx = currentIndexRef.current + 1;
+      if (nextIdx >= q.length) {
+        nextIdx = 0; // Wrap to start of queue so music plays continuously
       }
     }
 
-    const nextItem = queue[nextIdx];
-    if (nextItem) {
-      playTrack(nextItem, queue);
+    const nextItem = q[nextIdx];
+    if (nextItem && playTrackRef.current) {
+      playTrackRef.current(nextItem, q);
     }
-  }, [queue, currentIndex, isShuffle, repeatMode, currentTrack, playTrack]);
+  }, []);
 
   const prevTrack = useCallback(() => {
-    if (queue.length === 0) return;
+    const q = queueRef.current;
+    if (q.length === 0) return;
 
     // If current time > 3 seconds, restart current track
     if (audioRef.current && audioRef.current.currentTime > 3) {
@@ -278,25 +341,20 @@ export const MusicPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       return;
     }
 
-    let prevIdx = currentIndex - 1;
+    let prevIdx = currentIndexRef.current - 1;
     if (prevIdx < 0) {
-      prevIdx = repeatMode === 'all' ? queue.length - 1 : 0;
+      prevIdx = q.length - 1;
     }
 
-    const prevItem = queue[prevIdx];
-    if (prevItem) {
-      playTrack(prevItem, queue);
+    const prevItem = q[prevIdx];
+    if (prevItem && playTrackRef.current) {
+      playTrackRef.current(prevItem, q);
     }
-  }, [queue, currentIndex, repeatMode, playTrack]);
+  }, []);
 
   const handleTrackEnded = useCallback(() => {
-    if (repeatMode === 'one' && audioRef.current) {
-      audioRef.current.currentTime = 0;
-      audioRef.current.play().catch(() => {});
-    } else {
-      nextTrack();
-    }
-  }, [repeatMode, nextTrack]);
+    nextTrack();
+  }, [nextTrack]);
 
   const seekTo = useCallback((seconds: number) => {
     if (audioRef.current) {

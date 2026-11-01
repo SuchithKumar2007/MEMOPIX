@@ -17,6 +17,7 @@ import { SplashScreen } from './components/SplashScreen';
 import { ShareModal } from './components/ShareModal';
 import { CreateAlbumModal } from './components/CreateAlbumModal';
 import { AddToAlbumModal } from './components/AddToAlbumModal';
+import { AddToPlaylistModal } from './components/AddToPlaylistModal';
 import { MobileDrawer } from './components/MobileDrawer';
 import { RenameModal } from './components/RenameModal';
 import { useMusicPlayer } from './context/MusicPlayerContext';
@@ -63,6 +64,7 @@ export const App: React.FC = () => {
   const [uploadFolderId, setUploadFolderId] = useState<string | null>(null);
   const [isCreateAlbumOpen, setIsCreateAlbumOpen] = useState<boolean>(false);
   const [isAddToAlbumOpen, setIsAddToAlbumOpen] = useState<boolean>(false);
+  const [isAddToPlaylistOpen, setIsAddToPlaylistOpen] = useState<boolean>(false);
   const [shareMedia, setShareMedia] = useState<MediaItem | null>(null);
   const [shareAlbum, setShareAlbum] = useState<Album | null>(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState<boolean>(false);
@@ -481,6 +483,7 @@ export const App: React.FC = () => {
         onArchive={handleBulkArchive}
         onUnarchive={handleBulkUnarchive}
         onAddToAlbum={() => setIsAddToAlbumOpen(true)}
+        onAddToPlaylist={() => setIsAddToPlaylistOpen(true)}
         onTrash={handleBulkTrash}
         onRename={() => {
           const found = currentMediaList.find(m => m.id === selectedIds[0]);
@@ -571,6 +574,17 @@ export const App: React.FC = () => {
       <AddToAlbumModal
         isOpen={isAddToAlbumOpen}
         onClose={() => setIsAddToAlbumOpen(false)}
+        mediaIds={selectedIds}
+        onSuccess={() => {
+          handleClearSelection();
+          triggerReload();
+        }}
+      />
+
+      {/* Add To Playlist Modal */}
+      <AddToPlaylistModal
+        isOpen={isAddToPlaylistOpen}
+        onClose={() => setIsAddToPlaylistOpen(false)}
         mediaIds={selectedIds}
         onSuccess={() => {
           handleClearSelection();

@@ -7,7 +7,8 @@ import {
   ArchiveRestore,
   Trash2,
   FolderPlus,
-  Pencil
+  Pencil,
+  ListMusic
 } from 'lucide-react';
 
 interface MultiSelectBarProps {
@@ -19,6 +20,7 @@ interface MultiSelectBarProps {
   onArchive: () => void;
   onUnarchive?: () => void;
   onAddToAlbum: () => void;
+  onAddToPlaylist?: () => void;
   onTrash: () => void;
   onRename?: () => void;
 }
@@ -32,6 +34,7 @@ export const MultiSelectBar: React.FC<MultiSelectBarProps> = ({
   onArchive,
   onUnarchive,
   onAddToAlbum,
+  onAddToPlaylist,
   onTrash,
   onRename
 }) => {
@@ -86,14 +89,25 @@ export const MultiSelectBar: React.FC<MultiSelectBarProps> = ({
           <Heart className="w-4 h-4" />
         </button>
 
-        <button
-          onClick={onAddToAlbum}
-          title="Add to Album"
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-semibold transition-all active:scale-95"
-        >
-          <FolderPlus className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Add to Album</span>
-        </button>
+        {currentTab === 'audio' ? (
+          <button
+            onClick={onAddToPlaylist || onAddToAlbum}
+            title="Add to Playlist"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-semibold transition-all active:scale-95 shadow-md shadow-purple-500/25"
+          >
+            <ListMusic className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Add to Playlist</span>
+          </button>
+        ) : (
+          <button
+            onClick={onAddToAlbum}
+            title="Add to Album"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-semibold transition-all active:scale-95"
+          >
+            <FolderPlus className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Add to Album</span>
+          </button>
+        )}
 
         {/* Unarchive vs Archive Button */}
         {isArchiveView ? (
