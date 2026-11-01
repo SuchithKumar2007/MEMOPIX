@@ -398,6 +398,7 @@ export const App: React.FC = () => {
               onClickMedia={handleClickMedia}
               onOpenUpload={() => setIsUploadOpen(true)}
               onFavorite={handleFavoriteToggle}
+              onRename={handleOpenRename}
               reloadTrigger={reloadTrigger}
             />
           ) : currentTab === 'folders' ? (

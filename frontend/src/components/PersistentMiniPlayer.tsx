@@ -15,9 +15,12 @@ import {
   Music,
   Disc3,
   Heart,
-  Loader2
+  Loader2,
+  Trash2
 } from 'lucide-react';
 import { useMusicPlayer } from '../context/MusicPlayerContext';
+import { useToast } from '../context/ToastContext';
+import { mediaApi } from '../services/api';
 import { formatDuration } from '../utils/formatters';
 
 export const PersistentMiniPlayer: React.FC = () => {
@@ -49,6 +52,23 @@ export const PersistentMiniPlayer: React.FC = () => {
     removeFromQueue,
     closePlayer
   } = useMusicPlayer();
+
+  const { success, error } = useToast();
+
+  const handleDeleteCurrentTrack = async () => {
+    if (!currentTrack) return;
+    const trackTitle = currentTrack.originalName.replace(/\.[^/.]+$/, '');
+    if (!window.confirm(`Are you sure you want to delete "${trackTitle}"? It will be moved to Trash.`)) {
+      return;
+    }
+    try {
+      await mediaApi.trash(currentTrack.id);
+      success(`Moved "${trackTitle}" to Trash.`);
+      closePlayer();
+    } catch {
+      error('Failed to delete audio file.');
+    }
+  };
 
   if (!currentTrack) return null;
 
@@ -191,15 +211,25 @@ export const PersistentMiniPlayer: React.FC = () => {
               <p className="text-xs text-gray-400">Private Audio Library</p>
             </div>
 
-            <button
-              onClick={() => setShowQueue(!showQueue)}
-              className={`p-2 rounded-full transition-all ${
-                showQueue ? 'bg-purple-600 text-white' : 'bg-white/10 hover:bg-white/20 text-white'
-              }`}
-              title="View Queue"
-            >
-              <ListMusic className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleDeleteCurrentTrack}
+                className="p-2 rounded-full bg-white/10 hover:bg-red-500/30 text-white hover:text-red-400 active:scale-95 transition-all"
+                title="Delete this song"
+              >
+                <Trash2 className="w-5 h-5" />
+              </button>
+
+              <button
+                onClick={() => setShowQueue(!showQueue)}
+                className={`p-2 rounded-full transition-all ${
+                  showQueue ? 'bg-purple-600 text-white' : 'bg-white/10 hover:bg-white/20 text-white'
+                }`}
+                title="View Queue"
+              >
+                <ListMusic className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           {/* Main Body: Vinyl Disc / Artwork OR Queue */}

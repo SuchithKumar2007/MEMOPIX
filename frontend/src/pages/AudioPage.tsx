@@ -11,7 +11,9 @@ import {
   Disc3,
   Heart,
   GripVertical,
-  RotateCcw
+  RotateCcw,
+  Check,
+  Edit2
 } from 'lucide-react';
 import { MediaItem, Playlist } from '../types';
 import { mediaApi, playlistApi } from '../services/api';
@@ -29,13 +31,19 @@ interface AudioPageProps {
   onClickMedia: (media: MediaItem, list: MediaItem[]) => void;
   onOpenUpload: () => void;
   onFavorite: (id: string, isFav: boolean) => void;
+  onRename?: (media: MediaItem) => void;
   reloadTrigger: number;
 }
 
 export const AudioPage: React.FC<AudioPageProps> = ({
   searchQuery,
+  selectedIds,
+  onToggleSelect,
+  onSelectGroup,
+  onClickMedia,
   onOpenUpload,
   onFavorite,
+  onRename,
   reloadTrigger
 }) => {
   const [activeTab, setActiveTab] = useState<'tracks' | 'playlists'>('tracks');
@@ -52,7 +60,7 @@ export const AudioPage: React.FC<AudioPageProps> = ({
   const [hasCustomOrder, setHasCustomOrder] = useState(false);
 
   const { error, success } = useToast();
-  const { playTrack, currentTrack, isPlaying } = useMusicPlayer();
+  const { playTrack, currentTrack, isPlaying, isBuffering, closePlayer } = useMusicPlayer();
 
   const loadAudio = async () => {
     setIsLoading(true);
@@ -188,6 +196,24 @@ export const AudioPage: React.FC<AudioPageProps> = ({
     playTrack(list[0], list);
   };
 
+  const handleDeleteTrack = async (e: React.MouseEvent, track: MediaItem) => {
+    e.stopPropagation();
+    const cleanName = track.originalName.replace(/\.[^/.]+$/, '');
+    if (!window.confirm(`Are you sure you want to delete "${cleanName}"? It will be moved to Trash.`)) {
+      return;
+    }
+    try {
+      await mediaApi.trash(track.id);
+      success(`Moved "${cleanName}" to Trash.`);
+      if (currentTrack?.id === track.id) {
+        closePlayer();
+      }
+      loadAudio();
+    } catch {
+      error('Failed to delete audio file.');
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-24">
       {/* Page Header */}
@@ -293,10 +319,45 @@ export const AudioPage: React.FC<AudioPageProps> = ({
         ) : (
           <div className="bg-white dark:bg-[#121824] border border-gray-200 dark:border-[#26334D] rounded-3xl overflow-hidden shadow-sm">
             <div className="divide-y divide-gray-100 dark:divide-gray-800/80">
-              {/* Drag hint */}
-              <div className="px-4 py-2 flex items-center gap-1.5 text-[11px] text-gray-400 dark:text-gray-500 italic bg-gray-50/50 dark:bg-[#161D2B]/50">
-                <GripVertical className="w-3 h-3" />
-                Drag rows to reorder your song list
+              {/* Header bar: Select All & Drag hint */}
+              <div className="px-4 py-2.5 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 bg-gray-50/70 dark:bg-[#161D2B]/70">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      if (selectedIds && selectedIds.length === tracks.length && tracks.length > 0) {
+                        onSelectGroup([]);
+                      } else {
+                        onSelectGroup(tracks.map(t => t.id));
+                      }
+                    }}
+                    className="flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-gray-200/60 dark:hover:bg-gray-800 transition-colors font-medium text-[11px]"
+                    title={selectedIds && selectedIds.length === tracks.length ? 'Deselect all' : 'Select all'}
+                  >
+                    <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${
+                      selectedIds && selectedIds.length === tracks.length && tracks.length > 0
+                        ? 'bg-purple-600 border-purple-600 text-white'
+                        : 'border-gray-400 dark:border-gray-500'
+                    }`}>
+                      {selectedIds && selectedIds.length === tracks.length && tracks.length > 0 && (
+                        <Check className="w-2.5 h-2.5 stroke-[3]" />
+                      )}
+                    </div>
+                    <span>{selectedIds && selectedIds.length === tracks.length && tracks.length > 0 ? 'Deselect All' : 'Select All'}</span>
+                  </button>
+
+                  <span className="text-gray-300 dark:text-gray-700">|</span>
+
+                  <span className="flex items-center gap-1 text-[11px] italic text-gray-400 dark:text-gray-500">
+                    <GripVertical className="w-3 h-3" />
+                    Drag rows to reorder
+                  </span>
+                </div>
+
+                {selectedIds && selectedIds.length > 0 && (
+                  <span className="text-[11px] font-bold text-purple-600 dark:text-purple-400">
+                    {selectedIds.length} of {tracks.length} selected
+                  </span>
+                )}
               </div>
 
               {tracks.map((track, index) => {
@@ -304,6 +365,7 @@ export const AudioPage: React.FC<AudioPageProps> = ({
                 const cleanName = track.originalName.replace(/\.[^/.]+$/, '');
                 const isDragTarget = dragOverIndex === index && dragIndex !== index;
                 const isDragging = dragIndex === index;
+                const isSelected = selectedIds?.includes(track.id);
 
                 return (
                   <div
@@ -314,26 +376,46 @@ export const AudioPage: React.FC<AudioPageProps> = ({
                     onDrop={(e) => handleDrop(e, index)}
                     onDragEnd={() => { setDragIndex(null); setDragOverIndex(null); }}
                     onClick={() => playTrack(track, tracks)}
-                    className={`flex items-center justify-between px-4 py-3 sm:px-6 cursor-pointer transition-colors group ${
+                    className={`flex items-center justify-between px-3 sm:px-6 py-2.5 sm:py-3 cursor-pointer transition-colors group ${
                       isDragging
                         ? 'opacity-40 bg-purple-50 dark:bg-purple-950/20'
                         : isDragTarget
                         ? 'bg-purple-100/60 dark:bg-purple-900/20 border-t-2 border-purple-500'
+                        : isSelected
+                        ? 'bg-purple-50 dark:bg-purple-950/30 font-medium'
                         : isCurrent
                         ? 'bg-purple-50/80 dark:bg-purple-950/30 font-semibold'
                         : 'hover:bg-gray-50 dark:hover:bg-[#161D2B]'
                     }`}
                   >
-                    <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                    <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1">
+                      {/* Checkbox for selection */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onToggleSelect(track.id, e);
+                        }}
+                        className={`w-4 h-4 sm:w-5 sm:h-5 rounded-md border flex items-center justify-center transition-all flex-shrink-0 ${
+                          isSelected
+                            ? 'bg-purple-600 border-purple-600 text-white shadow-sm'
+                            : 'border-gray-300 dark:border-gray-600 opacity-60 sm:opacity-0 group-hover:opacity-100 hover:border-purple-500'
+                        }`}
+                        title="Select track"
+                      >
+                        {isSelected && <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5 stroke-[3]" />}
+                      </button>
+
                       {/* Drag Handle */}
                       <GripVertical
-                        className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity -ml-1"
+                        className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity -ml-1 hidden sm:block"
                         onClick={e => e.stopPropagation()}
                       />
 
                       {/* Play/Index Indicator */}
                       <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-300">
-                        {isCurrent && isPlaying ? (
+                        {isCurrent && isBuffering ? (
+                          <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
+                        ) : isCurrent && isPlaying ? (
                           <Disc3 className="w-4 h-4 animate-spin-slow text-purple-600 dark:text-purple-400" />
                         ) : (
                           <span className="text-xs group-hover:hidden">{index + 1}</span>
@@ -354,8 +436,9 @@ export const AudioPage: React.FC<AudioPageProps> = ({
                       </div>
                     </div>
 
-                    {/* Right Side Info */}
-                    <div className="flex items-center gap-3 flex-shrink-0">
+                    {/* Right Side Actions: Favorite, Rename, Delete, Duration */}
+                    <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 ml-2">
+                      {/* Favorite Button */}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -364,13 +447,37 @@ export const AudioPage: React.FC<AudioPageProps> = ({
                         className={`p-1.5 rounded-lg transition-colors ${
                           track.isFavorite
                             ? 'text-red-500'
-                            : 'text-gray-400 hover:text-red-400 opacity-0 group-hover:opacity-100'
+                            : 'text-gray-400 hover:text-red-400 opacity-70 sm:opacity-0 group-hover:opacity-100'
                         }`}
+                        title={track.isFavorite ? 'Remove Favorite' : 'Favorite'}
                       >
                         <Heart className={`w-4 h-4 ${track.isFavorite ? 'fill-current' : ''}`} />
                       </button>
 
-                      <span className="text-xs font-mono text-gray-400 hidden sm:block">
+                      {/* Rename Button */}
+                      {onRename && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onRename(track);
+                          }}
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/30 opacity-70 sm:opacity-0 group-hover:opacity-100 transition-colors"
+                          title="Rename song"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                      )}
+
+                      {/* Delete Button */}
+                      <button
+                        onClick={(e) => handleDeleteTrack(e, track)}
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 opacity-70 sm:opacity-0 group-hover:opacity-100 transition-colors"
+                        title="Delete audio file"
+                      >
+                        <Trash2 className="w-4 h-4 text-red-500/70 hover:text-red-600" />
+                      </button>
+
+                      <span className="text-xs font-mono text-gray-400 hidden sm:block ml-1">
                         {track.duration ? formatDuration(track.duration) : '--:--'}
                       </span>
                     </div>
