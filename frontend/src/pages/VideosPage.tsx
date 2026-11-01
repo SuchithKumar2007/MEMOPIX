@@ -15,6 +15,7 @@ interface VideosPageProps {
   onClickMedia: (media: MediaItem, list: MediaItem[]) => void;
   onOpenUpload: () => void;
   onFavorite: (id: string, isFav: boolean) => void;
+  onRename?: (media: MediaItem) => void;
   reloadTrigger: number;
 }
 
@@ -26,6 +27,7 @@ export const VideosPage: React.FC<VideosPageProps> = ({
   onClickMedia,
   onOpenUpload,
   onFavorite,
+  onRename,
   reloadTrigger
 }) => {
   const [videos, setVideos] = useState<MediaItem[]>([]);
@@ -85,6 +87,7 @@ export const VideosPage: React.FC<VideosPageProps> = ({
           onSelectGroup={onSelectGroup}
           onClickMedia={item => onClickMedia(item, videos)}
           onFavorite={onFavorite}
+          onRename={onRename}
         />
       )}
     </div>

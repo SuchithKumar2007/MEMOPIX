@@ -54,6 +54,8 @@ export const PhotoViewer: React.FC<PhotoViewerProps> = ({
   const [isSlideshow, setIsSlideshow] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState('');
+  const [imageError, setImageError] = useState(false);
+  const [imageLoading, setImageLoading] = useState(true);
 
   // Touch swipe tracking
   const touchStartX = useRef<number | null>(null);
@@ -65,6 +67,8 @@ export const PhotoViewer: React.FC<PhotoViewerProps> = ({
     setRotation(0);
     setIsRenaming(false);
     setRenameValue('');
+    setImageError(false);
+    setImageLoading(true);
   }, [media?.id]);
 
   useEffect(() => {
@@ -324,16 +328,52 @@ export const PhotoViewer: React.FC<PhotoViewerProps> = ({
 
         {/* Photo Canvas */}
         <div
-          className="w-full h-full flex items-center justify-center p-2 sm:p-4 transition-transform duration-200 cursor-zoom-in"
+          className="w-full h-full flex items-center justify-center p-2 sm:p-4 transition-transform duration-200 cursor-zoom-in relative"
           onDoubleClick={handleDoubleTap}
           style={{
             transform: `scale(${zoom}) rotate(${rotation}deg)`
           }}
         >
+          {imageLoading && !imageError && (
+            <div className="absolute z-10 flex flex-col items-center gap-2 bg-black/60 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/10">
+              <div className="w-6 h-6 rounded-full border-2 border-brand-400 border-t-transparent animate-spin" />
+              <span className="text-xs font-semibold text-white/90">Loading photo...</span>
+            </div>
+          )}
+
+          {imageError && (
+            <div className="absolute z-20 flex flex-col items-center gap-3 bg-[#111827]/95 border border-brand-500/30 p-6 rounded-3xl max-w-sm text-center shadow-2xl backdrop-blur-xl">
+              <div className="w-12 h-12 rounded-2xl bg-brand-500/20 text-brand-400 flex items-center justify-center shadow-inner">
+                <HardDrive className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white">Cloud Storage Standby</h3>
+                <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+                  Image stream is connecting or waking up from cold standby.
+                </p>
+              </div>
+              <a
+                href={media.downloadUrl}
+                download={media.originalName}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold rounded-xl transition-all shadow-md"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Download Photo</span>
+              </a>
+            </div>
+          )}
+
           <img
             src={media.streamUrl}
             alt={media.originalName}
-            className="max-h-[82vh] max-w-[92vw] sm:max-w-[88vw] object-contain rounded-lg shadow-2xl transition-all"
+            onLoad={() => setImageLoading(false)}
+            onError={() => {
+              setImageLoading(false);
+              setImageError(true);
+            }}
+            className={`max-h-[82vh] max-w-[92vw] sm:max-w-[88vw] object-contain rounded-lg shadow-2xl transition-all ${
+              imageLoading || imageError ? 'opacity-0' : 'opacity-100'
+            }`}
           />
         </div>
 

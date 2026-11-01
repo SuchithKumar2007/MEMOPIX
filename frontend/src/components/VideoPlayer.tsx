@@ -15,7 +15,10 @@ import {
   Pencil,
   Check,
   Archive,
-  ArchiveRestore
+  ArchiveRestore,
+  Video,
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
 import { MediaItem } from '../types';
 import { formatDuration } from '../utils/formatters';
@@ -48,10 +51,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [playbackRate, setPlaybackRate] = useState(1);
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState('');
+  const [isBuffering, setIsBuffering] = useState(false);
+  const [videoError, setVideoError] = useState(false);
 
   useEffect(() => {
     setIsRenaming(false);
     setRenameValue('');
+    setVideoError(false);
+    setIsBuffering(false);
   }, [media?.id]);
 
   useEffect(() => {
@@ -64,18 +71,23 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [isPlaying]);
 
   if (!media) return null;
 
-  const togglePlay = () => {
+  const togglePlay = async () => {
     if (videoRef.current) {
       if (isPlaying) {
         videoRef.current.pause();
+        setIsPlaying(false);
       } else {
-        videoRef.current.play();
+        try {
+          await videoRef.current.play();
+          setIsPlaying(true);
+        } catch (err) {
+          console.warn('Playback play request failed:', err);
+        }
       }
-      setIsPlaying(!isPlaying);
     }
   };
 
@@ -262,9 +274,75 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
       {/* Main Video Element */}
       <div className="flex-1 relative flex items-center justify-center overflow-hidden px-4">
+        {/* Buffering Indicator */}
+        {isBuffering && (
+          <div className="absolute z-20 flex flex-col items-center gap-2 bg-black/70 backdrop-blur-md px-5 py-3.5 rounded-2xl border border-white/10 shadow-2xl">
+            <div className="w-7 h-7 rounded-full border-2 border-brand-400 border-t-transparent animate-spin" />
+            <span className="text-xs font-semibold text-white/90">Connecting stream...</span>
+          </div>
+        )}
+
+        {/* Video Error / Offline Fallback Banner */}
+        {videoError && (
+          <div className="absolute z-30 flex flex-col items-center gap-3 bg-[#111827]/95 border border-brand-500/30 p-6 rounded-3xl max-w-sm text-center shadow-2xl backdrop-blur-xl">
+            <div className="w-14 h-14 rounded-2xl bg-brand-500/20 text-brand-400 flex items-center justify-center shadow-inner border border-brand-500/30">
+              <Video className="w-7 h-7" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white">Stream Connecting</h3>
+              <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+                Cloud media storage is waking up or buffering from cold standby. Tap retry or download directly.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 mt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setVideoError(false);
+                  setIsBuffering(true);
+                  if (videoRef.current) {
+                    videoRef.current.load();
+                    videoRef.current.play().then(() => {
+                      setIsPlaying(true);
+                      setIsBuffering(false);
+                    }).catch(() => {
+                      setIsBuffering(false);
+                    });
+                  }
+                }}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold rounded-xl transition-all shadow-md active:scale-95"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Retry Stream</span>
+              </button>
+              <a
+                href={media.downloadUrl}
+                download={media.originalName}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-xl transition-all border border-white/10"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Download</span>
+              </a>
+            </div>
+          </div>
+        )}
+
         <video
           ref={videoRef}
           src={media.streamUrl}
+          crossOrigin="anonymous"
+          preload="metadata"
+          playsInline
+          onWaiting={() => setIsBuffering(true)}
+          onPlaying={() => {
+            setIsBuffering(false);
+            setIsPlaying(true);
+          }}
+          onCanPlay={() => setIsBuffering(false)}
+          onError={() => {
+            setIsBuffering(false);
+            setVideoError(true);
+          }}
           onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={handleLoadedMetadata}
           onEnded={() => setIsPlaying(false)}

@@ -3,7 +3,20 @@ import path from 'path';
 import sharp from 'sharp';
 import { generateSignedMediaToken } from '../utils/token.js';
 
-const STORAGE_ROOT = path.resolve(process.cwd(), process.env.LOCAL_STORAGE_PATH || './storage_data');
+export const getStorageRoot = (): string => {
+  if (process.env.RENDER_DISK_PATH && fs.existsSync(process.env.RENDER_DISK_PATH)) {
+    return path.resolve(process.env.RENDER_DISK_PATH);
+  }
+  if (fs.existsSync('/var/data')) {
+    return '/var/data';
+  }
+  if (fs.existsSync('/data')) {
+    return '/data';
+  }
+  return path.resolve(process.cwd(), process.env.LOCAL_STORAGE_PATH || './storage_data');
+};
+
+const STORAGE_ROOT = getStorageRoot();
 const MEDIA_DIR = path.join(STORAGE_ROOT, 'media');
 const THUMB_DIR = path.join(STORAGE_ROOT, 'thumbnails');
 

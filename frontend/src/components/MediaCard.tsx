@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Play, Heart, Check, Trash2, Archive, Share2, Download, Music, Pencil } from 'lucide-react';
+import { Play, Heart, Check, Trash2, Archive, Share2, Download, Music, Pencil, FileText, Film, Image as ImageIcon } from 'lucide-react';
 import { MediaItem } from '../types';
-import { formatDuration } from '../utils/formatters';
+import { formatDuration, formatBytes } from '../utils/formatters';
 
 interface MediaCardProps {
   media: MediaItem;
@@ -23,11 +23,32 @@ export const MediaCard: React.FC<MediaCardProps> = ({
   onRename
 }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
-  const isVideo = media.mimeType.startsWith('video/');
-  const isAudio = media.mimeType.startsWith('audio/') || 
-    media.originalName.toLowerCase().endsWith('.mp3') ||
-    media.originalName.toLowerCase().endsWith('.wav') ||
-    media.originalName.toLowerCase().endsWith('.m4a');
+  const [hasError, setHasError] = useState(false);
+
+  const lowerName = (media.originalName || media.fileName || '').toLowerCase();
+  const isVideo = (media.mimeType && media.mimeType.startsWith('video/')) ||
+    media.category === 'video' ||
+    lowerName.endsWith('.mp4') ||
+    lowerName.endsWith('.mov') ||
+    lowerName.endsWith('.webm') ||
+    lowerName.endsWith('.mkv');
+
+  const isAudio = (media.mimeType && media.mimeType.startsWith('audio/')) ||
+    media.category === 'audio' ||
+    lowerName.endsWith('.mp3') ||
+    lowerName.endsWith('.wav') ||
+    lowerName.endsWith('.m4a') ||
+    lowerName.endsWith('.flac') ||
+    lowerName.endsWith('.aac');
+
+  const isDoc = (media.mimeType && (media.mimeType.includes('pdf') || media.mimeType.includes('document') || media.mimeType.includes('text'))) ||
+    media.category === 'document' ||
+    lowerName.endsWith('.pdf') ||
+    lowerName.endsWith('.docx') ||
+    lowerName.endsWith('.txt') ||
+    lowerName.endsWith('.zip');
+
+  const thumbSource = media.thumbnailUrl || (media.mimeType?.startsWith('image/') ? media.streamUrl : '');
 
   return (
     <div
@@ -38,7 +59,7 @@ export const MediaCard: React.FC<MediaCardProps> = ({
           : 'border-gray-200/60 dark:border-[#26334D]/60 hover:border-brand-500/50 hover:shadow-lg'
       }`}
     >
-      {/* Thumbnail or Audio Music Card */}
+      {/* 1. Audio Track Card */}
       {isAudio ? (
         <div className="w-full h-full bg-gradient-to-br from-indigo-950 via-purple-900 to-[#121824] flex flex-col items-center justify-center p-4 text-center select-none">
           <div className="w-14 h-14 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center mb-2 shadow-inner group-hover:scale-110 group-hover:bg-purple-500/20 transition-all border border-purple-500/20">
@@ -48,19 +69,57 @@ export const MediaCard: React.FC<MediaCardProps> = ({
             {media.originalName}
           </p>
           <span className="text-[10px] font-semibold text-purple-300/80 mt-1 uppercase tracking-wider">
-            Audio Track
+            Audio • {formatBytes(media.fileSize)}
+          </span>
+        </div>
+      ) : isDoc ? (
+        /* 2. Document Card */
+        <div className="w-full h-full bg-gradient-to-br from-slate-900 via-sky-950 to-[#0c1322] flex flex-col items-center justify-center p-4 text-center select-none">
+          <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center mb-2 shadow-inner group-hover:scale-110 group-hover:bg-sky-500/20 transition-all border border-sky-500/20">
+            <FileText className="w-7 h-7 text-sky-300 group-hover:text-sky-200" />
+          </div>
+          <p className="text-xs font-bold text-white truncate max-w-full px-1">
+            {media.originalName}
+          </p>
+          <span className="text-[10px] font-semibold text-sky-300/80 mt-1 uppercase tracking-wider">
+            Document • {formatBytes(media.fileSize)}
           </span>
         </div>
       ) : (
-        <img
-          src={media.thumbnailUrl || media.streamUrl}
-          alt={media.originalName}
-          loading="lazy"
-          onLoad={() => setImageLoaded(true)}
-          className={`w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 ${
-            imageLoaded ? 'opacity-100' : 'opacity-0'
-          }`}
-        />
+        /* 3. Photos & Videos Thumbnail / Fallback Graphic */
+        <div className="w-full h-full relative flex items-center justify-center bg-gradient-to-br from-[#0F172A] via-[#1E1B4B] to-[#0A0E17]">
+          {thumbSource && !hasError ? (
+            <img
+              src={thumbSource}
+              alt={media.originalName}
+              loading="lazy"
+              onLoad={() => setImageLoaded(true)}
+              onError={() => setHasError(true)}
+              className={`w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 ${
+                imageLoaded ? 'opacity-100' : 'opacity-0'
+              }`}
+            />
+          ) : null}
+
+          {/* Elegant Branded Graphic when thumbnail is loading or failed */}
+          {(!imageLoaded || hasError) && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center p-3 text-center bg-gradient-to-br from-[#0F172A] via-[#1E1B4B] to-[#0A0E17]">
+              <div className="w-12 h-12 rounded-full bg-brand-500/20 border border-brand-400/30 flex items-center justify-center mb-2 backdrop-blur-sm group-hover:scale-110 transition-transform">
+                {isVideo ? (
+                  <Play className="w-6 h-6 text-brand-300 fill-brand-300 ml-0.5" />
+                ) : (
+                  <Film className="w-6 h-6 text-brand-300" />
+                )}
+              </div>
+              <p className="text-xs font-bold text-white truncate max-w-full px-1 drop-shadow">
+                {media.originalName}
+              </p>
+              <span className="text-[10px] font-semibold text-brand-300/80 mt-1 uppercase tracking-wider">
+                {isVideo ? 'Video' : 'Media'} • {formatBytes(media.fileSize)}
+              </span>
+            </div>
+          )}
+        </div>
       )}
 
       {/* Audio Badge */}
@@ -149,7 +208,7 @@ export const MediaCard: React.FC<MediaCardProps> = ({
 
       {/* Original Filename Tooltip on hover */}
       <div className="absolute bottom-2 left-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none truncate text-[11px] text-white/90 font-medium drop-shadow">
-        {!isVideo && media.originalName}
+        {!isAudio && !isDoc && media.originalName}
       </div>
     </div>
   );

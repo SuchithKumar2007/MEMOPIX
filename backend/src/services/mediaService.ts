@@ -120,9 +120,7 @@ export class MediaService {
       ...media,
       fileSize: Number(media.fileSize),
       streamUrl: StorageService.getSignedMediaUrl(media.id, userId),
-      thumbnailUrl: media.thumbnailPath 
-        ? StorageService.getSignedThumbnailUrl(media.id, userId) 
-        : (media.mimeType.startsWith('image/') ? StorageService.getSignedMediaUrl(media.id, userId) : null),
+      thumbnailUrl: StorageService.getSignedThumbnailUrl(media.id, userId),
       downloadUrl: `/api/media/${media.id}/download`
     };
   }
@@ -170,9 +168,24 @@ export class MediaService {
         } else if (view === 'photos') {
           where.mimeType = { startsWith: 'image/' };
         } else if (view === 'videos') {
-          where.mimeType = { startsWith: 'video/' };
+          where.OR = [
+            { mimeType: { startsWith: 'video/' } },
+            { category: 'video' },
+            { originalName: { endsWith: '.mp4' } },
+            { originalName: { endsWith: '.mov' } },
+            { originalName: { endsWith: '.webm' } },
+            { originalName: { endsWith: '.mkv' } }
+          ];
         } else if (view === 'audio') {
-          where.mimeType = { startsWith: 'audio/' };
+          where.OR = [
+            { mimeType: { startsWith: 'audio/' } },
+            { category: 'audio' },
+            { originalName: { endsWith: '.mp3' } },
+            { originalName: { endsWith: '.wav' } },
+            { originalName: { endsWith: '.m4a' } },
+            { originalName: { endsWith: '.flac' } },
+            { originalName: { endsWith: '.aac' } }
+          ];
         } else if (view === 'documents' || view === 'files') {
           where.NOT = [
             { mimeType: { startsWith: 'image/' } },

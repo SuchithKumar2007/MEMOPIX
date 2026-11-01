@@ -372,7 +372,11 @@ export class MediaController {
           'Content-Range': `bytes ${start}-${end}/${fileSize}`,
           'Accept-Ranges': 'bytes',
           'Content-Length': chunkSize,
-          'Content-Type': mimeType
+          'Content-Type': mimeType,
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+          'Access-Control-Allow-Headers': 'Range, Authorization, Content-Type, Origin, Accept',
+          'Access-Control-Expose-Headers': 'Content-Range, Accept-Ranges, Content-Length, Content-Type'
         });
 
         fileStream.pipe(res);
@@ -413,11 +417,21 @@ export class MediaController {
         return;
       }
 
+      const lowerName = (media.originalName || media.fileName || '').toLowerCase();
+      const isVideo = media.category === 'video' || (media.mimeType && media.mimeType.startsWith('video/')) || lowerName.endsWith('.mp4') || lowerName.endsWith('.mov') || lowerName.endsWith('.webm');
+      const isAudio = media.category === 'audio' || (media.mimeType && media.mimeType.startsWith('audio/')) || lowerName.endsWith('.mp3') || lowerName.endsWith('.wav') || lowerName.endsWith('.m4a');
+      const isDoc = media.category === 'document' || lowerName.endsWith('.pdf') || lowerName.endsWith('.docx') || lowerName.endsWith('.txt');
+
       const relativePath = media.thumbnailPath || media.storagePath;
       const filePath = StorageService.getAbsolutePath(relativePath);
 
-      if (!fs.existsSync(filePath)) {
-        res.status(404).send('Thumbnail not found.');
+      // If file doesn't exist on disk, or if video/audio/doc has no sharp image thumbnail:
+      if (!fs.existsSync(filePath) || (!media.thumbnailPath && (isVideo || isAudio || isDoc))) {
+        const category = isVideo ? 'video' : isAudio ? 'audio' : isDoc ? 'document' : 'photo';
+        const svg = generateFallbackThumbnailSvg(media.originalName, category);
+        res.setHeader('Content-Type', 'image/svg+xml');
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        res.send(svg);
         return;
       }
 
@@ -428,4 +442,40 @@ export class MediaController {
       res.status(500).send('Error streaming thumbnail.');
     }
   }
+}
+
+export function generateFallbackThumbnailSvg(title: string, category: string): string {
+  const safeTitle = (title || 'Media File').replace(/[<>&'"]/g, '');
+  const isVideo = category === 'video';
+  const isAudio = category === 'audio';
+  const isDoc = category === 'document';
+  
+  const bg1 = isVideo ? '#1E1B4B' : isAudio ? '#2E1065' : isDoc ? '#0F172A' : '#111827';
+  const bg2 = isVideo ? '#0F172A' : isAudio ? '#17052E' : isDoc ? '#090D16' : '#030712';
+  const accent = isVideo ? '#818CF8' : isAudio ? '#C084FC' : isDoc ? '#38BDF8' : '#A855F7';
+  const categoryLabel = (isVideo ? 'VIDEO' : isAudio ? 'AUDIO' : isDoc ? 'DOCUMENT' : 'MEDIA');
+
+  let iconSvg = '';
+  if (isVideo) {
+    iconSvg = `<polygon points="232,192 264,210 232,228" fill="${accent}"/>`;
+  } else if (isAudio) {
+    iconSvg = `<path d="M226,192 L226,226 A14,14 0 1,1 212,212 M226,198 L254,190 L254,222 A14,14 0 1,1 240,208" fill="none" stroke="${accent}" stroke-width="4" stroke-linecap="round"/>`;
+  } else {
+    iconSvg = `<path d="M220,185 L250,185 L260,195 L260,235 L220,235 Z" fill="none" stroke="${accent}" stroke-width="3"/><polyline points="250,185 250,195 260,195" fill="none" stroke="${accent}" stroke-width="2"/>`;
+  }
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="480" viewBox="0 0 480 480">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="${bg1}" />
+      <stop offset="100%" stop-color="${bg2}" />
+    </linearGradient>
+  </defs>
+  <rect width="480" height="480" rx="28" fill="url(#grad)" />
+  <circle cx="240" cy="210" r="54" fill="${accent}" fill-opacity="0.12" stroke="${accent}" stroke-width="2" stroke-opacity="0.3" />
+  ${iconSvg}
+  <text x="240" y="300" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="600" fill="#F8FAFC" text-anchor="middle">${safeTitle.slice(0, 26)}</text>
+  <text x="240" y="328" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="600" fill="${accent}" text-anchor="middle" letter-spacing="2">${categoryLabel}</text>
+</svg>`;
 }
