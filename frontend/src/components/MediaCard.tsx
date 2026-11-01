@@ -101,21 +101,21 @@ export const MediaCard: React.FC<MediaCardProps> = ({
             />
           ) : null}
 
-          {/* Elegant Branded Graphic when thumbnail is loading or failed */}
-          {(!imageLoaded || hasError) && (
+          {/* Branded placeholder when no thumb OR image failed */}
+          {(!thumbSource || hasError || !imageLoaded) && (
             <div className="absolute inset-0 flex flex-col items-center justify-center p-3 text-center bg-gradient-to-br from-[#0F172A] via-[#1E1B4B] to-[#0A0E17]">
               <div className="w-12 h-12 rounded-full bg-brand-500/20 border border-brand-400/30 flex items-center justify-center mb-2 backdrop-blur-sm group-hover:scale-110 transition-transform">
                 {isVideo ? (
                   <Play className="w-6 h-6 text-brand-300 fill-brand-300 ml-0.5" />
                 ) : (
-                  <Film className="w-6 h-6 text-brand-300" />
+                  <ImageIcon className="w-6 h-6 text-brand-300" />
                 )}
               </div>
               <p className="text-xs font-bold text-white truncate max-w-full px-1 drop-shadow">
                 {media.originalName}
               </p>
               <span className="text-[10px] font-semibold text-brand-300/80 mt-1 uppercase tracking-wider">
-                {isVideo ? 'Video' : 'Media'} • {formatBytes(media.fileSize)}
+                {isVideo ? 'Video' : 'Photo'} • {formatBytes(media.fileSize)}
               </span>
             </div>
           )}

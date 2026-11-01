@@ -21,27 +21,46 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
   const [customServerUrl, setCustomServerUrl] = useState(
     () => localStorage.getItem('memopix_custom_backend_url') || ''
   );
-  const [serverStatus, setServerStatus] = useState<'checking' | 'online' | 'offline'>('checking');
+  const [serverStatus, setServerStatus] = useState<'checking' | 'waking' | 'online' | 'offline'>('checking');
+  const [wakeRetry, setWakeRetry] = useState(0);
 
   const { login } = useAuth();
   const { success } = useToast();
 
-  // Check health of currently targeted backend
+  // Check health — retry up to 6 times (covers ~60s Render cold-start)
   useEffect(() => {
     let isMounted = true;
+    let retryCount = 0;
+    const MAX_RETRIES = 6;
+
     const checkServer = async () => {
       try {
         const base = getApiBase();
-        const res = await fetch(`${base}/health`, { signal: AbortSignal.timeout(4000) });
+        const res = await fetch(`${base}/health`, { signal: AbortSignal.timeout(8000) });
         if (res.ok && isMounted) {
           setServerStatus('online');
-        } else if (isMounted) {
-          setServerStatus('offline');
+          setWakeRetry(0);
+          return; // done
         }
       } catch {
-        if (isMounted) setServerStatus('offline');
+        // network error or timeout
+      }
+
+      if (!isMounted) return;
+
+      retryCount++;
+      if (retryCount < MAX_RETRIES) {
+        setServerStatus('waking');
+        setWakeRetry(retryCount);
+        // retry after 10 seconds
+        setTimeout(checkServer, 10000);
+      } else {
+        setServerStatus('offline');
       }
     };
+
+    setServerStatus('checking');
+    setWakeRetry(0);
     checkServer();
     return () => { isMounted = false; };
   }, [customServerUrl]);
@@ -129,7 +148,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
               }`}
             />
             <span className="capitalize">
-              {serverStatus === 'online' ? 'Cloud Server Online' : serverStatus === 'offline' ? 'Server Offline' : 'Connecting...'}
+              {serverStatus === 'online'
+                ? 'Cloud Server Online'
+                : serverStatus === 'offline'
+                ? 'Server Offline'
+                : serverStatus === 'waking'
+                ? `Server Waking Up… (${wakeRetry * 10}s)`
+                : 'Connecting…'}
             </span>
             <button
               type="button"

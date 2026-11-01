@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Music,
   Play,
@@ -63,6 +63,9 @@ export const AudioPage: React.FC<AudioPageProps> = ({
   const [addToPlaylistTargetIds, setAddToPlaylistTargetIds] = useState<string[]>([]);
   const [isSelectSongsOpen, setIsSelectSongsOpen] = useState(false);
 
+  const [isLoadError, setIsLoadError] = useState(false);
+  const errorShownRef = useRef(false);
+
   // Drag-to-reorder state
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -73,6 +76,8 @@ export const AudioPage: React.FC<AudioPageProps> = ({
 
   const loadAudio = async () => {
     setIsLoading(true);
+    setIsLoadError(false);
+    errorShownRef.current = false;
     try {
       const [mediaRes, playlistRes] = await Promise.all([
         mediaApi.list({
@@ -114,15 +119,21 @@ export const AudioPage: React.FC<AudioPageProps> = ({
           setTracks(items);
           setHasCustomOrder(false);
         }
-      } else if (!mediaRes?.success) {
-        error('Failed to load audio library.');
+      } else if (!mediaRes?.success && !errorShownRef.current) {
+        // Only show error toast once — not on every reloadTrigger
+        errorShownRef.current = true;
+        setIsLoadError(true);
+        // Don't spam toast — just set error state
       }
 
       if (playlistRes && playlistRes.success && playlistRes.data) {
         setPlaylists(playlistRes.data);
       }
     } catch {
-      error('Failed to load audio library.');
+      if (!errorShownRef.current) {
+        errorShownRef.current = true;
+        setIsLoadError(true);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -335,6 +346,25 @@ export const AudioPage: React.FC<AudioPageProps> = ({
       {/* Loading State */}
       {isLoading ? (
         <SkeletonLoader count={8} />
+      ) : isLoadError ? (
+        /* ── SERVER ERROR / WAKING STATE ─────────────────────────────────── */
+        <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+          <div className="w-16 h-16 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center">
+            <Music className="w-8 h-8 text-amber-400" />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-white mb-1">Server is waking up…</p>
+            <p className="text-xs text-gray-400 max-w-xs">
+              The backend server may be starting up. Please wait a moment and try again.
+            </p>
+          </div>
+          <button
+            onClick={() => { errorShownRef.current = false; loadAudio(); }}
+            className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl shadow-md active:scale-95 transition-all"
+          >
+            Retry
+          </button>
+        </div>
       ) : activeTab === 'tracks' ? (
         /* ── TRACKS LIST VIEW ────────────────────────────────────────────── */
         tracks.length === 0 ? (
