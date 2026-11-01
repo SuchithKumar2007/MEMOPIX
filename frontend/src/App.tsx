@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from './context/AuthContext';
 import { useToast } from './context/ToastContext';
 import { MediaItem, Album } from './types';
@@ -70,8 +70,12 @@ export const App: React.FC = () => {
   const [renameTarget, setRenameTarget] = useState<MediaItem | null>(null);
   const [isRenameModalOpen, setIsRenameModalOpen] = useState<boolean>(false);
 
-  // Trigger reload of active list
-  const triggerReload = () => setReloadTrigger(prev => prev + 1);
+  // Trigger reload of active list (memoized to prevent child subscription re-triggers)
+  const triggerReload = useCallback(() => setReloadTrigger(prev => prev + 1), []);
+  const handleUploadComplete = useCallback(() => {
+    triggerReload();
+    refreshStorage();
+  }, [triggerReload, refreshStorage]);
 
   // Handle URL routes for public share, Google OAuth callback, and password reset
   const pathname = window.location.pathname;
@@ -550,10 +554,7 @@ export const App: React.FC = () => {
           setIsUploadOpen(false);
           setUploadFolderId(null);
         }}
-        onUploadComplete={() => {
-          triggerReload();
-          refreshStorage();
-        }}
+        onUploadComplete={handleUploadComplete}
       />
 
       {/* Create Album Modal */}

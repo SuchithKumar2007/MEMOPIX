@@ -52,12 +52,27 @@ export const UploadModal: React.FC<UploadModalProps> = ({
   const [reselectTargetId, setReselectTargetId] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
+  const completedIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     const unsubscribe = resumableUploader.subscribe((items) => {
       setQueue(items);
-      // If all items completed
-      if (items.length > 0 && items.every(i => i.status === 'completed')) {
+
+      // Clean up deleted items from completed set
+      const currentIds = new Set(items.map(i => i.id));
+      for (const id of Array.from(completedIdsRef.current)) {
+        if (!currentIds.has(id)) {
+          completedIdsRef.current.delete(id);
+        }
+      }
+
+      // Only trigger onUploadComplete once per completed item (prevents infinite loop)
+      const newlyCompleted = items.filter(
+        i => i.status === 'completed' && !completedIdsRef.current.has(i.id)
+      );
+
+      if (newlyCompleted.length > 0) {
+        newlyCompleted.forEach(i => completedIdsRef.current.add(i.id));
         onUploadComplete();
       }
     });

@@ -3,3 +3,9 @@ include ':capacitor-cordova-android-plugins'
 project(':capacitor-cordova-android-plugins').projectDir = new File('./capacitor-cordova-android-plugins/')
 
 apply from: 'capacitor.settings.gradle'
+
+// Guarantee capacitor-android resolves to relative frontend/node_modules across all environments
+def localCapDir = new File(rootDir, '../node_modules/@capacitor/android/capacitor')
+if (localCapDir.exists()) {
+    project(':capacitor-android').projectDir = localCapDir
+}

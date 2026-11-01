@@ -62,12 +62,18 @@ export const AudioPage: React.FC<AudioPageProps> = ({
           view: 'audio',
           search: searchQuery || undefined,
           limit: 200
+        }).catch(err => {
+          console.warn('[AudioPage] mediaApi.list error:', err);
+          return { success: false, data: null };
         }),
-        playlistApi.list()
+        playlistApi.list().catch(err => {
+          console.warn('[AudioPage] playlistApi.list error:', err);
+          return { success: true, data: [] };
+        })
       ]);
 
-      if (mediaRes.success && mediaRes.data) {
-        const items = mediaRes.data.items;
+      if (mediaRes && mediaRes.success && mediaRes.data) {
+        const items = mediaRes.data.items || [];
         // Apply saved custom order from localStorage
         const savedOrder = localStorage.getItem('memopix_audio_order');
         if (savedOrder) {
@@ -91,8 +97,11 @@ export const AudioPage: React.FC<AudioPageProps> = ({
           setTracks(items);
           setHasCustomOrder(false);
         }
+      } else if (!mediaRes?.success) {
+        error('Failed to load audio library.');
       }
-      if (playlistRes.success && playlistRes.data) {
+
+      if (playlistRes && playlistRes.success && playlistRes.data) {
         setPlaylists(playlistRes.data);
       }
     } catch {
