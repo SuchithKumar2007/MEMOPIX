@@ -11,7 +11,53 @@ export const getApiBase = (): string => {
     const clean = rawBackend.trim().replace(/\/$/, '');
     return clean.endsWith('/api') ? clean : `${clean}/api`;
   }
+
+  // Capacitor Native Android/iOS or mobile WebViews running on localhost/capacitor origin
+  if (typeof window !== 'undefined') {
+    const isCapacitor =
+      (window as any).Capacitor !== undefined ||
+      window.location.protocol === 'capacitor:' ||
+      (window.location.hostname === 'localhost' && window.location.port === '') ||
+      window.navigator.userAgent.includes('Capacitor') ||
+      window.navigator.userAgent.includes('wv');
+    if (isCapacitor) {
+      return 'https://memopix-backend.onrender.com/api';
+    }
+  }
+
+  // Production web (e.g. Vercel deployment)
+  if (import.meta.env.PROD) {
+    return 'https://memopix-backend.onrender.com/api';
+  }
+
   return '/api';
+};
+
+/**
+ * Resolves relative media URLs (/api/media/stream/...) to direct backend origin,
+ * bypassing serverless proxy limits and ensuring reliable audio/video streaming on web & mobile APK.
+ */
+export const resolveMediaUrl = (url: string | null | undefined): string => {
+  if (!url) return '';
+  if (
+    url.startsWith('http://') ||
+    url.startsWith('https://') ||
+    url.startsWith('blob:') ||
+    url.startsWith('data:')
+  ) {
+    return url;
+  }
+
+  const apiBase = getApiBase();
+  let baseOrigin = 'https://memopix-backend.onrender.com';
+  if (apiBase.startsWith('http://') || apiBase.startsWith('https://')) {
+    baseOrigin = apiBase.endsWith('/api') ? apiBase.slice(0, -4) : apiBase;
+  } else if (typeof window !== 'undefined' && window.location.origin && window.location.port) {
+    baseOrigin = window.location.origin;
+  }
+
+  const cleanPath = url.startsWith('/') ? url : `/${url}`;
+  return `${baseOrigin}${cleanPath}`;
 };
 
 export const API_BASE = getApiBase();
@@ -24,8 +70,9 @@ const api = axios.create({
   }
 });
 
-// Attach Authorization Bearer token from localStorage
+// Attach Authorization Bearer token and dynamic baseURL from localStorage/environment
 api.interceptors.request.use(config => {
+  config.baseURL = getApiBase();
   const token = localStorage.getItem('memopix_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -142,6 +189,16 @@ export const uploadApi = {
   }
 };
 
+const enrichItemUrls = (item: any) => {
+  if (!item) return item;
+  return {
+    ...item,
+    streamUrl: resolveMediaUrl(item.streamUrl),
+    thumbnailUrl: item.thumbnailUrl ? resolveMediaUrl(item.thumbnailUrl) : null,
+    downloadUrl: resolveMediaUrl(item.downloadUrl)
+  };
+};
+
 // Media & Files APIs (Direct Real Cloud Backend)
 export const mediaApi = {
   list: async (params: {
@@ -154,11 +211,17 @@ export const mediaApi = {
     limit?: number;
   }) => {
     const res = await api.get('/media', { params });
+    if (res.data?.success && res.data?.data?.items) {
+      res.data.data.items = res.data.data.items.map(enrichItemUrls);
+    }
     return res.data;
   },
 
   getById: async (id: string) => {
     const res = await api.get(`/media/${id}`);
+    if (res.data?.success && res.data?.data) {
+      res.data.data = enrichItemUrls(res.data.data);
+    }
     return res.data;
   },
 

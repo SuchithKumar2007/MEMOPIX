@@ -1,11 +1,13 @@
 import React, { createContext, useContext, useState, useRef, useEffect, useCallback } from 'react';
 import { MediaItem } from '../types';
+import { resolveMediaUrl } from '../services/api';
 
 interface MusicPlayerContextType {
   currentTrack: MediaItem | null;
   queue: MediaItem[];
   currentIndex: number;
   isPlaying: boolean;
+  isBuffering: boolean;
   currentTime: number;
   duration: number;
   volume: number;
@@ -39,6 +41,7 @@ export const MusicPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [queue, setQueue] = useState<MediaItem[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(-1);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [isBuffering, setIsBuffering] = useState<boolean>(false);
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [duration, setDuration] = useState<number>(0);
   const [volume, setVolume] = useState<number>(() => {
@@ -51,31 +54,52 @@ export const MusicPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
   const [showQueue, setShowQueue] = useState<boolean>(false);
 
-  // Initialize Audio element
+  // Initialize HTML5 Audio element with CORS & streaming support
   useEffect(() => {
     const audio = new Audio();
-    audio.preload = 'metadata';
+    audio.preload = 'auto';
+    audio.crossOrigin = 'anonymous';
     audioRef.current = audio;
 
     const onTimeUpdate = () => setCurrentTime(audio.currentTime);
-    const onLoadedMetadata = () => setDuration(audio.duration || 0);
+    const onLoadedMetadata = () => {
+      setDuration(audio.duration || 0);
+      setIsBuffering(false);
+    };
+    const onWaiting = () => setIsBuffering(true);
+    const onPlaying = () => {
+      setIsBuffering(false);
+      setIsPlaying(true);
+    };
+    const onCanPlay = () => setIsBuffering(false);
     const onEnded = () => handleTrackEnded();
-    const onPlay = () => setIsPlaying(true);
     const onPause = () => setIsPlaying(false);
+    const onError = () => {
+      const err = audio.error;
+      console.warn('[MusicPlayer] Audio error:', err ? `code=${err.code}: ${err.message}` : 'unknown');
+      setIsBuffering(false);
+      setIsPlaying(false);
+    };
 
     audio.addEventListener('timeupdate', onTimeUpdate);
     audio.addEventListener('loadedmetadata', onLoadedMetadata);
+    audio.addEventListener('waiting', onWaiting);
+    audio.addEventListener('playing', onPlaying);
+    audio.addEventListener('canplay', onCanPlay);
     audio.addEventListener('ended', onEnded);
-    audio.addEventListener('play', onPlay);
     audio.addEventListener('pause', onPause);
+    audio.addEventListener('error', onError);
 
     return () => {
       audio.pause();
       audio.removeEventListener('timeupdate', onTimeUpdate);
       audio.removeEventListener('loadedmetadata', onLoadedMetadata);
+      audio.removeEventListener('waiting', onWaiting);
+      audio.removeEventListener('playing', onPlaying);
+      audio.removeEventListener('canplay', onCanPlay);
       audio.removeEventListener('ended', onEnded);
-      audio.removeEventListener('play', onPlay);
       audio.removeEventListener('pause', onPause);
+      audio.removeEventListener('error', onError);
     };
   }, []);
 
@@ -121,9 +145,25 @@ export const MusicPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     });
   }, [currentTrack]);
 
-  // Handle Play track
+  // Handle Play track - resolves URLs to absolute backend URLs for reliable streaming on web & mobile
   const playTrack = useCallback((track: MediaItem, newQueue?: MediaItem[]) => {
     if (!audioRef.current) return;
+
+    // If tapping same track, toggle play/pause
+    if (currentTrack?.id === track.id) {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        setIsBuffering(true);
+        audioRef.current.play().then(() => {
+          setIsBuffering(false);
+        }).catch(err => {
+          console.warn('[MusicPlayer] Play resumed - waiting on user gesture:', err);
+          setIsBuffering(false);
+        });
+      }
+      return;
+    }
 
     let targetQueue = queue;
     if (newQueue && newQueue.length > 0) {
@@ -136,30 +176,65 @@ export const MusicPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
     const idx = targetQueue.findIndex(t => t.id === track.id);
     setCurrentIndex(idx !== -1 ? idx : 0);
-    setCurrentTrack(track);
 
-    audioRef.current.src = track.streamUrl;
-    audioRef.current.volume = isMuted ? 0 : volume;
-    audioRef.current.play().then(() => {
-      setIsPlaying(true);
-    }).catch(err => {
-      console.warn('[MusicPlayer] Autoplay prevented:', err);
-    });
+    // Resolve to absolute backend URL (fixes Vercel proxy limits & mobile APK localhost issue)
+    const streamUrl = resolveMediaUrl(track.streamUrl);
+    const resolvedTrack = { ...track, streamUrl };
+    setCurrentTrack(resolvedTrack);
+    setCurrentTime(0);
+    setDuration(0);
+    setIsBuffering(true);
 
-    // Save to recently played in localStorage
+    try {
+      audioRef.current.pause();
+      audioRef.current.src = streamUrl;
+      audioRef.current.crossOrigin = 'anonymous';
+      audioRef.current.volume = isMuted ? 0 : volume;
+      audioRef.current.load();
+
+      const playPromise = audioRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            setIsBuffering(false);
+          })
+          .catch(err => {
+            // NotAllowedError = autoplay blocked, user must tap Play button
+            console.warn('[MusicPlayer] Autoplay blocked or stream initializing:', err.name, err.message);
+            setIsBuffering(false);
+          });
+      }
+    } catch (err) {
+      console.error('[MusicPlayer] Track load failed:', err);
+      setIsBuffering(false);
+    }
+
+    // Save to recently played
     try {
       const recent = JSON.parse(localStorage.getItem('memopix_recently_played') || '[]');
       const filtered = recent.filter((r: any) => r.id !== track.id);
-      localStorage.setItem('memopix_recently_played', JSON.stringify([track, ...filtered].slice(0, 50)));
+      localStorage.setItem('memopix_recently_played', JSON.stringify([resolvedTrack, ...filtered].slice(0, 50)));
     } catch {}
-  }, [queue, volume, isMuted]);
+  }, [queue, volume, isMuted, currentTrack, isPlaying]);
 
   const togglePlay = useCallback(() => {
     if (!audioRef.current || !currentTrack) return;
     if (isPlaying) {
       audioRef.current.pause();
     } else {
-      audioRef.current.play().catch(() => {});
+      // Re-attach src if audio lost its source (e.g. page reload)
+      if (!audioRef.current.src || audioRef.current.src === window.location.href) {
+        audioRef.current.src = resolveMediaUrl(currentTrack.streamUrl);
+        audioRef.current.crossOrigin = 'anonymous';
+        audioRef.current.load();
+      }
+      setIsBuffering(true);
+      audioRef.current.play().then(() => {
+        setIsBuffering(false);
+      }).catch(err => {
+        console.warn('[MusicPlayer] Resume rejected:', err);
+        setIsBuffering(false);
+      });
     }
   }, [isPlaying, currentTrack]);
 
@@ -276,6 +351,7 @@ export const MusicPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setCurrentTrack(null);
     setIsPlaying(false);
     setIsExpanded(false);
+    setIsBuffering(false);
   }, []);
 
   return (
@@ -285,6 +361,7 @@ export const MusicPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
         queue,
         currentIndex,
         isPlaying,
+        isBuffering,
         currentTime,
         duration,
         volume,

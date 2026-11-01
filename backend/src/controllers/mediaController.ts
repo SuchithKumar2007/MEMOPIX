@@ -291,6 +291,17 @@ export class MediaController {
    */
   static async streamMedia(req: Request, res: Response) {
     try {
+      // Direct CORS headers for cross-origin audio/video streaming & range requests
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Range, Authorization, Content-Type, Origin, Accept');
+      res.setHeader('Access-Control-Expose-Headers', 'Content-Range, Accept-Ranges, Content-Length, Content-Type');
+
+      if (req.method === 'OPTIONS') {
+        res.status(204).end();
+        return;
+      }
+
       const token = String(req.params.token);
       const verified = verifySignedMediaToken(token);
 
@@ -315,16 +326,41 @@ export class MediaController {
       const fileSize = stat.size;
       const range = req.headers.range;
 
-      res.setHeader('Content-Type', media.mimeType);
+      // Determine accurate MIME type to prevent browser playback decode failure
+      let mimeType = media.mimeType || '';
+      const lowerName = (media.originalName || media.fileName || '').toLowerCase();
+      if (!mimeType || mimeType === 'application/octet-stream') {
+        if (lowerName.endsWith('.mp3')) mimeType = 'audio/mpeg';
+        else if (lowerName.endsWith('.wav')) mimeType = 'audio/wav';
+        else if (lowerName.endsWith('.m4a')) mimeType = 'audio/mp4';
+        else if (lowerName.endsWith('.aac')) mimeType = 'audio/aac';
+        else if (lowerName.endsWith('.ogg')) mimeType = 'audio/ogg';
+        else if (lowerName.endsWith('.flac')) mimeType = 'audio/flac';
+        else if (lowerName.endsWith('.webm') || lowerName.endsWith('.weba')) mimeType = 'audio/webm';
+        else if (lowerName.endsWith('.mp4')) mimeType = 'video/mp4';
+        else if (lowerName.endsWith('.mov')) mimeType = 'video/quicktime';
+        else if (lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg')) mimeType = 'image/jpeg';
+        else if (lowerName.endsWith('.png')) mimeType = 'image/png';
+        else if (lowerName.endsWith('.webp')) mimeType = 'image/webp';
+        else mimeType = 'audio/mpeg';
+      }
+
+      res.setHeader('Content-Type', mimeType);
       res.setHeader('Accept-Ranges', 'bytes');
       res.setHeader('Cache-Control', 'private, max-age=86400');
+
+      if (req.method === 'HEAD') {
+        res.setHeader('Content-Length', fileSize);
+        res.status(200).end();
+        return;
+      }
 
       if (range) {
         const parts = range.replace(/bytes=/, '').split('-');
         const start = parseInt(parts[0], 10);
         const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
 
-        if (start >= fileSize || end >= fileSize) {
+        if (isNaN(start) || start >= fileSize || (parts[1] && end >= fileSize) || start > end) {
           res.status(416).setHeader('Content-Range', `bytes */${fileSize}`).end();
           return;
         }
@@ -336,7 +372,7 @@ export class MediaController {
           'Content-Range': `bytes ${start}-${end}/${fileSize}`,
           'Accept-Ranges': 'bytes',
           'Content-Length': chunkSize,
-          'Content-Type': media.mimeType
+          'Content-Type': mimeType
         });
 
         fileStream.pipe(res);
@@ -354,6 +390,15 @@ export class MediaController {
    */
   static async streamThumbnail(req: Request, res: Response) {
     try {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Range, Authorization, Content-Type, Origin, Accept');
+
+      if (req.method === 'OPTIONS') {
+        res.status(204).end();
+        return;
+      }
+
       const token = String(req.params.token);
       const verified = verifySignedMediaToken(token);
 

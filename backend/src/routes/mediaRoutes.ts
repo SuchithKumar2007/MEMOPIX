@@ -7,7 +7,12 @@ const router = Router();
 
 // Public / Token-signed streaming endpoints (no login session required, secured by crypto HMAC token)
 router.get('/stream/:token', MediaController.streamMedia);
+router.head('/stream/:token', MediaController.streamMedia);
+router.options('/stream/:token', MediaController.streamMedia);
+
 router.get('/thumbnail-stream/:token', MediaController.streamThumbnail);
+router.head('/thumbnail-stream/:token', MediaController.streamThumbnail);
+router.options('/thumbnail-stream/:token', MediaController.streamThumbnail);
 
 // Authenticated endpoints
 router.get('/', authenticate, MediaController.list);

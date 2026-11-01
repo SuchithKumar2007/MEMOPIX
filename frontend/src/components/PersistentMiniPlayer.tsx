@@ -14,7 +14,8 @@ import {
   X,
   Music,
   Disc3,
-  Heart
+  Heart,
+  Loader2
 } from 'lucide-react';
 import { useMusicPlayer } from '../context/MusicPlayerContext';
 import { formatDuration } from '../utils/formatters';
@@ -23,6 +24,7 @@ export const PersistentMiniPlayer: React.FC = () => {
   const {
     currentTrack,
     isPlaying,
+    isBuffering,
     currentTime,
     duration,
     volume,
@@ -112,7 +114,13 @@ export const PersistentMiniPlayer: React.FC = () => {
               className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-purple-500/20 active:scale-95 hover:scale-105 transition-all"
               title={isPlaying ? 'Pause' : 'Play'}
             >
-              {isPlaying ? <Pause className="w-4 h-4 sm:w-5 sm:h-5" /> : <Play className="w-4 h-4 sm:w-5 sm:h-5 ml-0.5" />}
+              {isBuffering ? (
+                <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
+              ) : isPlaying ? (
+                <Pause className="w-4 h-4 sm:w-5 sm:h-5" />
+              ) : (
+                <Play className="w-4 h-4 sm:w-5 sm:h-5 ml-0.5" />
+              )}
             </button>
 
             <button
@@ -314,7 +322,13 @@ export const PersistentMiniPlayer: React.FC = () => {
                 className="w-16 h-16 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-600 text-white flex items-center justify-center shadow-xl shadow-purple-500/40 hover:scale-105 active:scale-95 transition-all"
                 title={isPlaying ? 'Pause' : 'Play'}
               >
-                {isPlaying ? <Pause className="w-8 h-8" /> : <Play className="w-8 h-8 ml-1" />}
+                {isBuffering ? (
+                  <Loader2 className="w-8 h-8 animate-spin" />
+                ) : isPlaying ? (
+                  <Pause className="w-8 h-8" />
+                ) : (
+                  <Play className="w-8 h-8 ml-1" />
+                )}
               </button>
 
               <button
