@@ -6,6 +6,8 @@ on:
     branches: [ main ]
     paths:
       - 'frontend/android/**'
+      - 'frontend/src/**'
+      - 'frontend/package.json'
       - '.github/workflows/build-apk.yml'
 
 permissions:
@@ -56,10 +58,21 @@ jobs:
 
       - name: Ensure Capacitor Cordova Plugins directory
         run: |
-          mkdir -p frontend/android/capacitor-cordova-android-plugins
+          mkdir -p frontend/android/capacitor-cordova-android-plugins/src/main/libs
+          mkdir -p frontend/android/capacitor-cordova-android-plugins/src/main/res
           if [ ! -f frontend/android/capacitor-cordova-android-plugins/cordova.variables.gradle ]; then
             echo "ext { cdvMinSdkVersion = 24; cdvPluginPostBuildExtras = []; cordovaConfig = [:] }" > frontend/android/capacitor-cordova-android-plugins/cordova.variables.gradle
           fi
+          if [ ! -f frontend/android/capacitor-cordova-android-plugins/src/main/AndroidManifest.xml ]; then
+            echo '<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="capacitor.cordova.android.plugins"></manifest>' > frontend/android/capacitor-cordova-android-plugins/src/main/AndroidManifest.xml
+          fi
+
+      - name: Verify capacitor-android node_modules path
+        run: |
+          echo "Checking @capacitor/android in node_modules..."
+          ls frontend/node_modules/@capacitor/android/capacitor/ | head -10
+          echo "capacitor.settings.gradle contents:"
+          cat frontend/android/capacitor.settings.gradle
 
       - name: Grant gradlew execute permission
         working-directory: ./frontend/android
@@ -67,7 +80,7 @@ jobs:
 
       - name: Build Debug APK
         working-directory: ./frontend/android
-        run: ./gradlew assembleDebug --no-daemon
+        run: ./gradlew assembleDebug --no-daemon --info 2>&1 | tail -80
 
       - name: Upload APK as Workflow Artifact
         uses: actions/upload-artifact@v4
