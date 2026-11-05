@@ -369,6 +369,15 @@ export class ResumableUploadService {
       session.mimeType
     );
 
+    // Read buffer for database persistence (files <= 30MB are persisted in DB across server restarts)
+    let fileBuffer: Buffer | null = null;
+    if (Number(session.fileSize) <= 30 * 1024 * 1024) {
+      const absSaved = StorageService.getAbsolutePath(processed.storagePath);
+      if (fs.existsSync(absSaved)) {
+        try { fileBuffer = await fs.promises.readFile(absSaved); } catch {}
+      }
+    }
+
     // Create database Media record
     const media = await prisma.media.create({
       data: {
@@ -382,6 +391,7 @@ export class ResumableUploadService {
         fileHash: calculatedHash,
         storagePath: processed.storagePath,
         thumbnailPath: processed.thumbnailPath,
+        fileData: fileBuffer,
         width: processed.width,
         height: processed.height,
         duration: null,

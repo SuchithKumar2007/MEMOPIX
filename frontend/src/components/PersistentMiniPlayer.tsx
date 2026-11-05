@@ -38,6 +38,8 @@ export const PersistentMiniPlayer: React.FC = () => {
     showQueue,
     queue,
     currentIndex,
+    playbackError,
+    clearPlaybackError,
     togglePlay,
     nextTrack,
     prevTrack,
@@ -81,26 +83,42 @@ export const PersistentMiniPlayer: React.FC = () => {
       <div className={`fixed z-40 bg-white/95 dark:bg-[#121824]/95 backdrop-blur-md border-t border-gray-200 dark:border-[#26334D] shadow-lg transition-all duration-300 ${
         isExpanded ? 'opacity-0 pointer-events-none' : 'opacity-100'
       } left-0 right-0 bottom-[56px] md:bottom-0 md:left-64`}>
-        {/* Top Slim Progress Bar */}
+        {/* Playback Error Banner */}
+        {playbackError && (
+          <div className="bg-amber-950/90 border-b border-amber-800/80 px-4 py-1.5 flex items-center justify-between text-xs text-amber-200 font-medium">
+            <span className="truncate">{playbackError}</span>
+            <button
+              onClick={clearPlaybackError}
+              className="text-amber-400 hover:text-white font-bold text-[11px] ml-2 px-2 py-0.5 rounded bg-white/10"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
+        {/* Top Interactive Progress Scrub Bar */}
         <div
-          className="h-1 bg-gray-200 dark:bg-gray-800 w-full cursor-pointer relative"
+          className="h-1.5 hover:h-2.5 bg-gray-200 dark:bg-gray-800 w-full cursor-pointer relative group transition-all"
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
             const clickX = e.clientX - rect.left;
-            const pct = clickX / rect.width;
-            seekTo(pct * duration);
+            const pct = Math.max(0, Math.min(1, clickX / rect.width));
+            seekTo(pct * (duration || 1));
           }}
+          title="Click to seek"
         >
           <div
-            className="h-full bg-gradient-to-r from-purple-500 to-indigo-600 transition-all duration-100"
+            className="h-full bg-gradient-to-r from-purple-500 to-indigo-600 transition-all duration-100 relative"
             style={{ width: `${progressPercent}%` }}
-          />
+          >
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-md scale-0 group-hover:scale-100 transition-transform -mr-1.5" />
+          </div>
         </div>
 
-        <div className="flex items-center justify-between px-3 sm:px-6 py-2.5">
+        <div className="flex items-center justify-between px-3 sm:px-6 py-2">
           {/* Left: Track Info & Disc (Click expands to fullscreen player) */}
           <div
-            className="flex items-center gap-3 min-w-0 cursor-pointer flex-1"
+            className="flex items-center gap-3 min-w-0 cursor-pointer flex-1 max-w-[200px] sm:max-w-[260px]"
             onClick={() => setIsExpanded(true)}
           >
             <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-md ${
@@ -113,17 +131,44 @@ export const PersistentMiniPlayer: React.FC = () => {
               <h4 className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white truncate">
                 {cleanTitle}
               </h4>
-              <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 truncate">
-                MEMOPIX Cloud • 5 TB Library
+              <p className="text-[10px] sm:text-xs text-purple-600 dark:text-purple-400 font-mono truncate font-medium">
+                {formatDuration(currentTime)} / {formatDuration(duration)}
               </p>
             </div>
           </div>
 
-          {/* Center: Playback Controls */}
-          <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
+          {/* Middle: Timeline Scrubber with Timestamps (Tablet & Desktop) */}
+          <div className="hidden md:flex items-center gap-2.5 flex-1 max-w-sm lg:max-w-md mx-4">
+            <span className="text-[11px] font-mono text-gray-500 dark:text-gray-400 min-w-[36px] text-right">
+              {formatDuration(currentTime)}
+            </span>
+            <div
+              className="flex-1 h-1.5 hover:h-2.5 bg-gray-200 dark:bg-gray-800 rounded-full cursor-pointer relative group flex items-center transition-all"
+              onClick={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const clickX = e.clientX - rect.left;
+                const pct = Math.max(0, Math.min(1, clickX / rect.width));
+                seekTo(pct * (duration || 1));
+              }}
+            >
+              <div
+                className="h-full bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full relative"
+                style={{ width: `${progressPercent}%` }}
+              >
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-md scale-0 group-hover:scale-100 transition-transform -mr-1" />
+              </div>
+            </div>
+            <span className="text-[11px] font-mono text-gray-500 dark:text-gray-400 min-w-[36px]">
+              {formatDuration(duration)}
+            </span>
+          </div>
+
+          {/* Right: Playback Controls */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0">
+            {/* Previous Track button — 100% visible on mobile & desktop */}
             <button
               onClick={prevTrack}
-              className="p-1.5 text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 active:scale-90 transition-all hidden xs:block"
+              className="p-2 text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 active:scale-90 transition-all flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
               title="Previous Track"
             >
               <SkipBack className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -143,16 +188,17 @@ export const PersistentMiniPlayer: React.FC = () => {
               )}
             </button>
 
+            {/* Next Track button */}
             <button
               onClick={nextTrack}
-              className="p-1.5 text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 active:scale-90 transition-all"
+              className="p-2 text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 active:scale-90 transition-all flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
               title="Next Track"
             >
               <SkipForward className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
 
             {/* Desktop Volume Slider */}
-            <div className="hidden lg:flex items-center gap-2 ml-2 pl-3 border-l border-gray-200 dark:border-gray-800">
+            <div className="hidden lg:flex items-center gap-2 ml-1 pl-2.5 border-l border-gray-200 dark:border-gray-800">
               <button onClick={toggleMute} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white">
                 {isMuted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
               </button>
@@ -163,7 +209,7 @@ export const PersistentMiniPlayer: React.FC = () => {
                 step="0.01"
                 value={isMuted ? 0 : volume}
                 onChange={(e) => setVolumeLevel(parseFloat(e.target.value))}
-                className="w-20 h-1 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                className="w-16 h-1 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
               />
             </div>
 

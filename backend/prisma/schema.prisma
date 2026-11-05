@@ -68,6 +68,7 @@ model Media {
   fileHash      String          // SHA-256 for duplicate detection
   storagePath   String
   thumbnailPath String?
+  fileData      Bytes?
   width         Int?
   height        Int?
   duration      Float?          // Video or audio duration in seconds

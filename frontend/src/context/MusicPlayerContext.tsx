@@ -16,6 +16,8 @@ interface MusicPlayerContextType {
   repeatMode: 'none' | 'all' | 'one';
   isExpanded: boolean;
   showQueue: boolean;
+  playbackError: string | null;
+  clearPlaybackError: () => void;
   playTrack: (track: MediaItem, newQueue?: MediaItem[]) => void;
   togglePlay: () => void;
   nextTrack: () => void;
@@ -53,6 +55,9 @@ export const MusicPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [repeatMode, setRepeatMode] = useState<'none' | 'all' | 'one'>('none');
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
   const [showQueue, setShowQueue] = useState<boolean>(false);
+  const [playbackError, setPlaybackError] = useState<string | null>(null);
+
+  const clearPlaybackError = useCallback(() => setPlaybackError(null), []);
 
   // Keep live refs to prevent stale closure bugs in Audio element events
   const queueRef = useRef<MediaItem[]>([]);
@@ -137,6 +142,7 @@ export const MusicPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       console.warn('[MusicPlayer] Audio error:', err ? `code=${err.code}: ${err.message}` : 'unknown');
       setIsBuffering(false);
       setIsPlaying(false);
+      setPlaybackError('Track file is unavailable or waking up on cloud storage. Please retry or re-upload.');
     };
 
     audio.addEventListener('timeupdate', onTimeUpdate);
@@ -246,6 +252,7 @@ export const MusicPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     currentTrackRef.current = resolvedTrack;
     setCurrentTime(0);
     setDuration(0);
+    setPlaybackError(null);
     setIsBuffering(true);
 
     try {
@@ -428,6 +435,8 @@ export const MusicPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
         repeatMode,
         isExpanded,
         showQueue,
+        playbackError,
+        clearPlaybackError,
         playTrack,
         togglePlay,
         nextTrack,

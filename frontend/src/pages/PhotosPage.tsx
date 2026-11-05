@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Image as ImageIcon, Upload, Filter, Calendar } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Image as ImageIcon, Upload, Filter, Calendar, RefreshCw } from 'lucide-react';
 import { MediaItem } from '../types';
 import { mediaApi } from '../services/api';
 import { MediaGrid } from '../components/MediaGrid';
@@ -32,10 +32,13 @@ export const PhotosPage: React.FC<PhotosPageProps> = ({
 }) => {
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadError, setIsLoadError] = useState(false);
+  const errorShownRef = useRef(false);
   const { error } = useToast();
 
   const loadPhotos = async () => {
     setIsLoading(true);
+    setIsLoadError(false);
     try {
       const res = await mediaApi.list({
         view: 'photos',
@@ -66,9 +69,15 @@ export const PhotosPage: React.FC<PhotosPageProps> = ({
           );
         });
         setMedia(photoOnly);
+        setIsLoadError(false);
+      } else if (!res?.success) {
+        setIsLoadError(true);
       }
     } catch (err: any) {
-      error('Failed to load photos gallery.');
+      setIsLoadError(true);
+      if (!errorShownRef.current) {
+        errorShownRef.current = true;
+      }
     } finally {
       setIsLoading(false);
     }
@@ -94,6 +103,25 @@ export const PhotosPage: React.FC<PhotosPageProps> = ({
 
       {isLoading ? (
         <SkeletonLoader count={18} />
+      ) : isLoadError ? (
+        <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+          <div className="w-16 h-16 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center">
+            <ImageIcon className="w-8 h-8 text-amber-400" />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-white mb-1">Server is waking up…</p>
+            <p className="text-xs text-gray-400 max-w-xs">
+              The backend cloud is connecting. Please wait a moment and tap retry.
+            </p>
+          </div>
+          <button
+            onClick={() => { errorShownRef.current = false; loadPhotos(); }}
+            className="flex items-center gap-1.5 px-5 py-2 bg-gradient-to-r from-brand-500 to-cyan-500 hover:opacity-90 text-white font-bold text-xs rounded-xl shadow-md active:scale-95 transition-all"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Retry</span>
+          </button>
+        </div>
       ) : media.length === 0 ? (
         <EmptyState
           icon={ImageIcon}

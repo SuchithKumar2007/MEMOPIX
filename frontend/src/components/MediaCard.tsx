@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Play, Heart, Check, Trash2, Archive, Share2, Download, Music, Pencil, FileText, Film, Image as ImageIcon } from 'lucide-react';
 import { MediaItem } from '../types';
+import { resolveMediaUrl } from '../services/api';
 import { formatDuration, formatBytes } from '../utils/formatters';
 
 interface MediaCardProps {
@@ -48,7 +49,8 @@ export const MediaCard: React.FC<MediaCardProps> = ({
     lowerName.endsWith('.txt') ||
     lowerName.endsWith('.zip');
 
-  const thumbSource = media.thumbnailUrl || (media.mimeType?.startsWith('image/') ? media.streamUrl : '');
+  const rawThumb = media.thumbnailUrl || (media.mimeType?.startsWith('image/') ? media.streamUrl : '');
+  const thumbSource = resolveMediaUrl(rawThumb);
 
   return (
     <div

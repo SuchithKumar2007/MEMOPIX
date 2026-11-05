@@ -22,6 +22,7 @@ import {
   ArchiveRestore
 } from 'lucide-react';
 import { MediaItem } from '../types';
+import { resolveMediaUrl } from '../services/api';
 import { formatBytes } from '../utils/formatters';
 import { format, parseISO } from 'date-fns';
 
@@ -353,7 +354,7 @@ export const PhotoViewer: React.FC<PhotoViewerProps> = ({
                 </p>
               </div>
               <a
-                href={media.downloadUrl}
+                href={resolveMediaUrl(media.downloadUrl)}
                 download={media.originalName}
                 className="flex items-center gap-1.5 px-3.5 py-2 bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold rounded-xl transition-all shadow-md"
               >
@@ -364,7 +365,7 @@ export const PhotoViewer: React.FC<PhotoViewerProps> = ({
           )}
 
           <img
-            src={media.streamUrl}
+            src={resolveMediaUrl(media.streamUrl)}
             alt={media.originalName}
             onLoad={() => setImageLoading(false)}
             onError={() => {

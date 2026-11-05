@@ -72,7 +72,7 @@ export const AudioPage: React.FC<AudioPageProps> = ({
   const [hasCustomOrder, setHasCustomOrder] = useState(false);
 
   const { error, success } = useToast();
-  const { playTrack, currentTrack, isPlaying, isBuffering, closePlayer } = useMusicPlayer();
+  const { playTrack, currentTrack, isPlaying, isBuffering, duration, closePlayer } = useMusicPlayer();
 
   const loadAudio = async () => {
     setIsLoading(true);
@@ -565,8 +565,8 @@ export const AudioPage: React.FC<AudioPageProps> = ({
                         <Trash2 className="w-4 h-4 text-red-500/70 hover:text-red-600" />
                       </button>
 
-                      <span className="text-xs font-mono text-gray-400 hidden sm:block ml-1">
-                        {track.duration ? formatDuration(track.duration) : '--:--'}
+                      <span className="text-xs font-mono text-purple-600 dark:text-purple-400 font-medium hidden sm:block ml-1 min-w-[36px] text-right">
+                        {track.duration ? formatDuration(track.duration) : isCurrent && duration > 0 ? formatDuration(duration) : '--:--'}
                       </span>
                     </div>
                   </div>

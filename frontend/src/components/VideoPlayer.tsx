@@ -21,6 +21,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { MediaItem } from '../types';
+import { resolveMediaUrl } from '../services/api';
 import { formatDuration } from '../utils/formatters';
 
 interface VideoPlayerProps {
@@ -316,7 +317,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 <span>Retry Stream</span>
               </button>
               <a
-                href={media.downloadUrl}
+                href={resolveMediaUrl(media.downloadUrl)}
                 download={media.originalName}
                 className="flex items-center gap-1.5 px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-xl transition-all border border-white/10"
               >
@@ -329,7 +330,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
         <video
           ref={videoRef}
-          src={media.streamUrl}
+          src={resolveMediaUrl(media.streamUrl)}
           crossOrigin="anonymous"
           preload="metadata"
           playsInline

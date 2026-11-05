@@ -85,6 +85,21 @@ export class MediaService {
       file.mimetype
     );
 
+    // Read buffer for database persistence (files <= 30MB are persisted in DB across server restarts)
+    let fileBuffer: Buffer | null = null;
+    if (file.size <= 30 * 1024 * 1024) {
+      if (file.buffer) {
+        fileBuffer = file.buffer;
+      } else if (file.path && fs.existsSync(file.path)) {
+        try { fileBuffer = await fs.promises.readFile(file.path); } catch {}
+      } else {
+        const absSaved = StorageService.getAbsolutePath(processed.storagePath);
+        if (fs.existsSync(absSaved)) {
+          try { fileBuffer = await fs.promises.readFile(absSaved); } catch {}
+        }
+      }
+    }
+
     // 4. Save Media Record to DB
     const media = await prisma.media.create({
       data: {
@@ -96,6 +111,7 @@ export class MediaService {
         fileHash,
         storagePath: processed.storagePath,
         thumbnailPath: processed.thumbnailPath,
+        fileData: fileBuffer,
         width: processed.width,
         height: processed.height,
         duration: null,

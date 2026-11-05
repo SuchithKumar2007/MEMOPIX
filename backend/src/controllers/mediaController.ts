@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import fs from 'fs';
+import path from 'path';
 import { AuthenticatedRequest } from '../middleware/auth.js';
 import { MediaService } from '../services/mediaService.js';
 import { StorageService } from '../services/storageService.js';
@@ -276,8 +277,15 @@ export class MediaController {
 
       const fullPath = StorageService.getAbsolutePath(media.storagePath);
       if (!fs.existsSync(fullPath)) {
-        res.status(404).json({ success: false, message: 'File not found on storage.' });
-        return;
+        if (media.fileData && media.fileData.length > 0) {
+          try {
+            fs.mkdirSync(path.dirname(fullPath), { recursive: true });
+            fs.writeFileSync(fullPath, media.fileData);
+          } catch {}
+        } else {
+          res.status(404).json({ success: false, message: 'File not found on storage.' });
+          return;
+        }
       }
 
       res.download(fullPath, media.originalName);
@@ -318,8 +326,15 @@ export class MediaController {
 
       const filePath = StorageService.getAbsolutePath(media.storagePath);
       if (!fs.existsSync(filePath)) {
-        res.status(404).send('File not found.');
-        return;
+        if (media.fileData && media.fileData.length > 0) {
+          try {
+            fs.mkdirSync(path.dirname(filePath), { recursive: true });
+            fs.writeFileSync(filePath, media.fileData);
+          } catch {}
+        } else {
+          res.status(404).send('File not found.');
+          return;
+        }
       }
 
       const stat = await fs.promises.stat(filePath);
@@ -424,6 +439,13 @@ export class MediaController {
 
       const relativePath = media.thumbnailPath || media.storagePath;
       const filePath = StorageService.getAbsolutePath(relativePath);
+
+      if (!fs.existsSync(filePath) && media.fileData && media.fileData.length > 0) {
+        try {
+          fs.mkdirSync(path.dirname(filePath), { recursive: true });
+          fs.writeFileSync(filePath, media.fileData);
+        } catch {}
+      }
 
       // If file doesn't exist on disk, or if video/audio/doc has no sharp image thumbnail:
       if (!fs.existsSync(filePath) || (!media.thumbnailPath && (isVideo || isAudio || isDoc))) {

@@ -64,7 +64,7 @@ export const API_BASE = getApiBase();
 
 const api = axios.create({
   baseURL: API_BASE,
-  timeout: 30000, // 30 seconds default
+  timeout: 60000, // 60 seconds (covers Render cold-start spinup)
   headers: {
     'Content-Type': 'application/json'
   }
@@ -80,10 +80,22 @@ api.interceptors.request.use(config => {
   return config;
 });
 
-// Response interceptor
+// Response interceptor with automatic single retry for cold-start 502/503/504 or timeout
 api.interceptors.response.use(
   response => response,
-  error => {
+  async error => {
+    const config = error.config;
+    if (
+      config &&
+      !config._retry &&
+      (config.method === 'get' || !config.method) &&
+      (error.code === 'ECONNABORTED' || !error.response || [502, 503, 504].includes(error.response?.status))
+    ) {
+      config._retry = true;
+      // Wait 3 seconds for server to finish waking up and retry once
+      await new Promise(res => setTimeout(res, 3000));
+      return api(config);
+    }
     if (error.response && error.response.status === 401) {
       console.warn('[MEMOPIX] Session unverified or expired');
     }
