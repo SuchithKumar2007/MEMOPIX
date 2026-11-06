@@ -583,39 +583,75 @@ export const PersistentMiniPlayer: React.FC = () => {
                 </div>
               </div>
             ) : (
-              /* ── INNOVATIVE SONIC VINYL PLAYER ── */
-              <div className="flex flex-col items-center">
-                {/* Vinyl Disc Container with atmospheric cosmic aura */}
-                <div className="relative group cursor-pointer" onClick={togglePlay} title={isPlaying ? 'Click to Pause' : 'Click to Play'}>
-                  {/* Outer ambient radiant glows */}
-                  <div className={`absolute -inset-16 rounded-full bg-purple-600/30 blur-3xl -z-10 transition-opacity duration-700 ${isPlaying ? 'animate-pulse' : 'opacity-30'}`} />
-                  <div className="absolute -inset-24 rounded-full bg-indigo-900/20 blur-3xl -z-10" />
+              /* ── LUXURY ROTATING GRAMOPHONE RECORD PLAYER ── */
+              <div className="flex flex-col items-center justify-center w-full">
+                {/* Gramophone Turntable Plinth Deck */}
+                <div
+                  className="relative p-5 sm:p-7 rounded-[42px] bg-gradient-to-b from-[#16042b]/95 via-[#0b0114]/95 to-[#05000a]/95 border border-purple-500/25 shadow-[0_25px_80px_rgba(0,0,0,0.85),0_0_90px_rgba(147,51,234,0.22)] max-w-[340px] xs:max-w-sm sm:max-w-md w-full flex flex-col items-center justify-center cursor-pointer select-none group"
+                  onClick={togglePlay}
+                  title={isPlaying ? 'Click turntable to pause' : 'Click turntable to start'}
+                >
+                  {/* Outer Ambient Cosmic Radiant Glow */}
+                  <div className={`absolute -inset-10 rounded-[48px] bg-purple-600/20 blur-3xl -z-10 transition-opacity duration-700 ${isPlaying ? 'animate-pulse' : 'opacity-25'}`} />
 
-                  {/* Micro Orbital Particle Accents (Cosmic Aura) */}
-                  {isPlaying && (
-                    <div className="absolute -inset-3 rounded-full animate-spin-slow pointer-events-none -z-5">
-                      <span className="absolute top-0 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-purple-300 shadow-[0_0_10px_#d8b4fe]" />
-                      <span className="absolute bottom-4 right-1/4 w-1.5 h-1.5 rounded-full bg-indigo-200 shadow-[0_0_8px_#a5b4fc]" />
+                  {/* ── MECHANICAL GRAMOPHONE TONEARM / STYLUS NEEDLE ── */}
+                  <div
+                    className="absolute top-3 right-5 sm:top-4 sm:right-7 pointer-events-none z-30 transition-transform duration-700 ease-out origin-top-right"
+                    style={{
+                      transform: isPlaying ? 'rotate(24deg)' : 'rotate(-16deg)'
+                    }}
+                  >
+                    {/* Tonearm Pivot Base (Brushed Metallic Chrome & Gold Ring) */}
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-tr from-gray-300 via-gray-100 to-gray-400 border-2 border-white/80 shadow-xl flex items-center justify-center relative">
+                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-gray-800 via-black to-gray-900 border border-gray-500 shadow-inner flex items-center justify-center">
+                        <div className="w-2.5 h-2.5 rounded-full bg-purple-500 shadow-[0_0_8px_#c084fc]" />
+                      </div>
                     </div>
-                  )}
 
-                  {/* Main Vinyl Disc — Layered Concentric Luminous Rings */}
-                  <div className={`w-64 h-64 sm:w-80 sm:h-80 md:w-88 md:h-88 rounded-full bg-gradient-to-br from-[#1b0533] via-[#0b0117] to-[#160228] shadow-[0_0_70px_rgba(147,51,234,0.45)] border border-purple-500/30 flex items-center justify-center relative select-none transition-transform duration-700 ${
-                    isPlaying ? 'animate-spin-slow scale-[1.02]' : 'scale-100 hover:scale-[1.01]'
-                  }`}>
-                    {/* Ring 1 — Outer vinyl edge band */}
-                    <div className="w-[92%] h-[92%] rounded-full border border-purple-800/40 flex items-center justify-center">
-                      {/* Ring 2 — Outer subtle white groove */}
-                      <div className="w-[86%] h-[86%] rounded-full border border-white/20 flex items-center justify-center">
-                        {/* Ring 3 — Mid dark band */}
-                        <div className="w-[80%] h-[80%] rounded-full border border-purple-700/30 flex items-center justify-center">
-                          {/* Ring 4 — Crisp luminous white groove */}
-                          <div className="w-[74%] h-[74%] rounded-full border border-white/50 shadow-[0_0_12px_rgba(255,255,255,0.2)] flex items-center justify-center">
-                            {/* Ring 5 — Brightest luminous crisp white groove (matching reference) */}
-                            <div className="w-[68%] h-[68%] rounded-full border border-white/80 shadow-[0_0_16px_rgba(255,255,255,0.4)] flex items-center justify-center">
-                              {/* Central Glowing Purple Core */}
-                              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gradient-to-tr from-[#9333ea] via-[#a855f7] to-[#7c3aed] flex items-center justify-center shadow-[0_0_45px_rgba(168,85,247,0.95)] border-2 border-white/60 ring-4 ring-purple-500/30 group-hover:scale-105 transition-transform">
-                                <Music className="w-10 h-10 sm:w-12 sm:h-12 text-white drop-shadow-[0_2px_12px_rgba(255,255,255,0.9)]" />
+                    {/* Tonearm Metal Rod / Wand */}
+                    <div className="w-1.5 h-32 sm:h-38 bg-gradient-to-r from-gray-300 via-white to-gray-400 rounded-full shadow-lg ml-4 sm:ml-4.5 -mt-1 origin-top transform -rotate-12">
+                      {/* Headshell / Cartridge */}
+                      <div className="absolute -bottom-6 -left-1.5 w-5 h-8 bg-gradient-to-b from-gray-900 via-black to-gray-900 rounded-sm border border-gray-600 shadow-2xl transform -rotate-15 flex flex-col items-center justify-between p-0.5">
+                        <div className="w-3 h-1 bg-purple-500 rounded-full shadow-[0_0_6px_#a855f7]" />
+                        {/* Glowing Stylus Needle Tip */}
+                        <div className={`w-0.5 h-2.5 bg-amber-200 transition-all duration-300 ${isPlaying ? 'shadow-[0_0_8px_#fef08a] bg-yellow-100' : 'opacity-60'}`} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Turntable Platter Outer Metallic Beveled Rim */}
+                  <div className="relative w-60 h-60 xs:w-68 xs:h-68 sm:w-76 sm:h-76 md:w-80 md:h-80 rounded-full bg-gradient-to-tr from-gray-800 via-[#1c0638] to-gray-900 p-2.5 sm:p-3 shadow-2xl border border-purple-400/25 ring-2 ring-purple-900/40 flex items-center justify-center">
+
+                    {/* ── ROTATING VINYL DISC RECORD ── */}
+                    <div
+                      className={`w-full h-full rounded-full bg-gradient-to-br from-[#1b0533] via-[#090013] to-[#150228] border border-purple-500/30 shadow-2xl flex items-center justify-center relative select-none transition-transform ${
+                        isPlaying ? 'animate-spin-slow' : 'animate-spin-slow animation-paused'
+                      }`}
+                    >
+                      {/* Vinyl Conic Sheen Reflection (Authentic turntable gleam) */}
+                      <div className="absolute inset-0 rounded-full bg-[conic-gradient(from_0deg,transparent_0deg,rgba(255,255,255,0.06)_50deg,transparent_110deg,rgba(255,255,255,0.06)_230deg,transparent_290deg)] pointer-events-none" />
+
+                      {/* Ring 1 — Outer vinyl edge band */}
+                      <div className="w-[92%] h-[92%] rounded-full border border-purple-800/40 flex items-center justify-center">
+                        {/* Ring 2 — Outer subtle white groove */}
+                        <div className="w-[86%] h-[86%] rounded-full border border-white/20 flex items-center justify-center">
+                          {/* Ring 3 — Mid dark band */}
+                          <div className="w-[80%] h-[80%] rounded-full border border-purple-700/30 flex items-center justify-center">
+                            {/* Ring 4 — Crisp luminous white groove */}
+                            <div className="w-[74%] h-[74%] rounded-full border border-white/50 shadow-[0_0_12px_rgba(255,255,255,0.2)] flex items-center justify-center">
+                              {/* Ring 5 — Brightest luminous crisp white groove (matching reference) */}
+                              <div className="w-[68%] h-[68%] rounded-full border border-white/80 shadow-[0_0_16px_rgba(255,255,255,0.4)] flex items-center justify-center">
+                                
+                                {/* Central Glowing Purple Label Core */}
+                                <div className="w-22 h-22 sm:w-26 sm:h-26 rounded-full bg-gradient-to-tr from-[#9333ea] via-[#a855f7] to-[#7c3aed] flex items-center justify-center shadow-[0_0_45px_rgba(168,85,247,0.95)] border-2 border-white/60 ring-4 ring-purple-500/30 relative">
+                                  <Music className="w-9 h-9 sm:w-11 sm:h-11 text-white drop-shadow-[0_2px_12px_rgba(255,255,255,0.9)]" />
+
+                                  {/* Center Metallic Spindle Pin Hole */}
+                                  <div className="w-3.5 h-3.5 rounded-full bg-gradient-to-tr from-gray-200 via-gray-300 to-gray-500 border border-white/90 shadow-md absolute inset-0 m-auto flex items-center justify-center">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-[#1b0533]" />
+                                  </div>
+                                </div>
+
                               </div>
                             </div>
                           </div>
@@ -623,10 +659,23 @@ export const PersistentMiniPlayer: React.FC = () => {
                       </div>
                     </div>
                   </div>
+
+                  {/* Turntable Plinth Lower Deck Bar */}
+                  <div className="w-full flex items-center justify-between text-[10px] font-mono text-purple-400/80 mt-3 px-2">
+                    <div className="flex items-center gap-1.5">
+                      <span className={`w-1.5 h-1.5 rounded-full transition-colors ${isPlaying ? 'bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse' : 'bg-gray-500'}`} />
+                      <span className="uppercase tracking-wider font-bold text-gray-300 text-[10px]">
+                        {isPlaying ? 'GRAMOPHONE TURNTABLE ACTIVE' : 'TONEARM RESTING · PAUSED'}
+                      </span>
+                    </div>
+                    <span className="font-semibold text-purple-400/90 tracking-widest uppercase text-[10px]">
+                      33 ⅓ RPM · LOSSLESS
+                    </span>
+                  </div>
                 </div>
 
                 {/* Live Real-Time Equalizer Frequency Visualizer */}
-                <div className="flex items-end justify-center gap-1 h-6 mt-6 px-4">
+                <div className="flex items-end justify-center gap-1 h-5 mt-4 px-4">
                   {[35, 60, 45, 80, 50, 95, 70, 40, 85, 65, 90, 55, 75, 45, 85, 60, 40, 70, 50, 30].map((h, i) => (
                     <span
                       key={i}
@@ -641,15 +690,15 @@ export const PersistentMiniPlayer: React.FC = () => {
                   ))}
                 </div>
 
-                {/* Track Title & Artist */}
-                <div className="mt-4 text-center max-w-md px-4">
+                {/* Track Title & Lossless Badge */}
+                <div className="mt-3 text-center max-w-md px-4">
                   <h2 className="text-lg sm:text-2xl font-bold tracking-tight text-white line-clamp-1 drop-shadow-sm">
                     {cleanTitle}
                   </h2>
                   <div className="flex items-center justify-center gap-2 mt-1">
-                    <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-purple-300 bg-purple-500/10 border border-purple-500/20 px-3 py-1 rounded-full shadow-sm">
+                    <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-purple-300 bg-purple-500/10 border border-purple-500/20 px-3 py-0.5 rounded-full shadow-sm">
                       <Sparkles className="w-3 h-3 text-purple-400" />
-                      5 TB Lossless Vault · 33 ⅓ RPM Master
+                      5 TB Audiophile Cloud · Hi-Fi Master
                     </span>
                   </div>
                 </div>

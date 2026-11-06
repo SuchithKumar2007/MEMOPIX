@@ -25,3 +25,21 @@
 ::-webkit-scrollbar-thumb:hover {
   @apply bg-gray-400 dark:bg-gray-600;
 }
+
+/* ── Gramophone Smooth Vinyl Rotation ── */
+@keyframes spinSlow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spinSlow 18s linear infinite;
+}
+
+.animation-paused {
+  animation-play-state: paused !important;
+}
