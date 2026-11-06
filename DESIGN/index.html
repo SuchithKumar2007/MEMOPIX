@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MEMOPIX - Official App Posters Showcase (Portrait & Landscape)</title>
+  <title>MEMOPIX - Official Diwali Launch Showcase (Video & Posters)</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <style>
     * {
       box-sizing: border-box;
@@ -15,24 +15,25 @@
     }
 
     body {
-      background: #060913;
+      background: #040209;
       color: #F8FAFC;
       font-family: 'Plus Jakarta Sans', sans-serif;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
+      overflow-x: hidden;
     }
 
     /* Ambient Lighting */
-    .bg-glow {
+    .bg-glow-gold {
       position: fixed;
       top: 0;
       left: 50%;
       transform: translateX(-50%);
-      width: 1000px;
-      height: 400px;
-      background: radial-gradient(ellipse at top, rgba(56, 189, 248, 0.15), rgba(168, 85, 247, 0.1), transparent 70%);
-      filter: blur(80px);
+      width: 1200px;
+      height: 450px;
+      background: radial-gradient(ellipse at top, rgba(245, 158, 11, 0.18), rgba(168, 85, 247, 0.12), transparent 70%);
+      filter: blur(90px);
       pointer-events: none;
       z-index: 0;
     }
@@ -42,10 +43,10 @@
       position: sticky;
       top: 0;
       z-index: 50;
-      background: rgba(6, 9, 19, 0.85);
+      background: rgba(4, 2, 9, 0.88);
       backdrop-filter: blur(20px);
       border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      padding: 16px 32px;
+      padding: 16px 36px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -58,357 +59,352 @@
     }
 
     .brand img {
-      width: 38px;
-      height: 38px;
-      filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.5));
+      width: 40px;
+      height: 40px;
+      filter: drop-shadow(0 0 15px rgba(0, 240, 255, 0.6));
     }
 
     .brand-title {
       font-family: 'Outfit', sans-serif;
-      font-size: 22px;
+      font-size: 24px;
       font-weight: 900;
-      letter-spacing: 1px;
-    }
-
-    .brand-title span {
-      background: linear-gradient(135deg, #00F0FF, #C084FC);
+      letter-spacing: 1.5px;
+      background: linear-gradient(135deg, #FFFBEB 0%, #FDE68A 50%, #F59E0B 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
 
-    .controls {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .toggle-group {
-      background: rgba(15, 23, 42, 0.8);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 999px;
-      padding: 4px;
-      display: flex;
-      gap: 4px;
-    }
-
-    .tab-btn {
-      padding: 8px 20px;
-      border-radius: 999px;
-      font-size: 13px;
-      font-weight: 700;
-      border: none;
-      background: transparent;
-      color: #94A3B8;
-      cursor: pointer;
-      transition: all 0.2s ease;
+    .nav-badge {
       display: flex;
       align-items: center;
       gap: 8px;
-    }
-
-    .tab-btn.active {
-      background: linear-gradient(135deg, #0284C7, #7C3AED);
-      color: #FFFFFF;
-      box-shadow: 0 4px 16px rgba(124, 58, 237, 0.4);
-    }
-
-    .action-btn {
       padding: 8px 18px;
-      border-radius: 12px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.15));
+      border: 1px solid rgba(251, 191, 36, 0.5);
+      font-family: 'JetBrains Mono', monospace;
       font-size: 13px;
       font-weight: 700;
-      text-decoration: none;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      background: rgba(255, 255, 255, 0.06);
-      color: #fff;
-      cursor: pointer;
-      transition: all 0.2s ease;
+      color: #FDE68A;
+      letter-spacing: 1px;
     }
 
-    .action-btn:hover {
-      background: rgba(255, 255, 255, 0.12);
-      border-color: rgba(255, 255, 255, 0.25);
-    }
-
-    .action-btn.primary {
-      background: linear-gradient(135deg, #0284C7, #2563EB);
-      border-color: rgba(255, 255, 255, 0.2);
-      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
-    }
-
-    /* Main Showcase Area */
-    .main-content {
+    /* Main Container */
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 50px 24px 80px 24px;
       position: relative;
-      z-index: 1;
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 40px 24px;
+      z-index: 10;
+      width: 100%;
     }
 
-    .intro-box {
+    /* Hero Header */
+    .hero-header {
       text-align: center;
-      max-width: 700px;
-      margin-bottom: 32px;
+      margin-bottom: 50px;
     }
 
-    .intro-badge {
+    .hero-super {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
+      font-size: 14px;
       font-weight: 700;
       letter-spacing: 4px;
-      color: #38BDF8;
+      color: #F59E0B;
       text-transform: uppercase;
-      padding: 4px 14px;
-      background: rgba(56, 189, 248, 0.1);
-      border: 1px solid rgba(56, 189, 248, 0.25);
+      margin-bottom: 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 18px;
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.3);
       border-radius: 999px;
-      display: inline-block;
-      margin-bottom: 12px;
     }
 
-    .intro-title {
+    .hero-h1 {
       font-family: 'Outfit', sans-serif;
-      font-size: 36px;
-      font-weight: 800;
-      letter-spacing: -0.5px;
-      margin-bottom: 8px;
+      font-size: 56px;
+      font-weight: 900;
+      line-height: 1.1;
+      letter-spacing: -1.5px;
+      margin-bottom: 16px;
     }
 
-    .intro-desc {
-      font-size: 15px;
+    .hero-h1 span.glow-gold {
+      background: linear-gradient(135deg, #FFFBEB 0%, #FDE68A 40%, #F59E0B 70%, #D97706 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 0 35px rgba(245, 158, 11, 0.45));
+    }
+
+    .hero-p {
+      font-size: 19px;
       color: #94A3B8;
+      max-width: 850px;
+      margin: 0 auto;
       line-height: 1.5;
     }
 
-    /* Poster Container Frame */
-    .viewer-frame {
+    /* SECTION 1: PROMO VIDEO */
+    .section-box {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 32px;
+      padding: 40px;
+      backdrop-filter: blur(20px);
+      margin-bottom: 60px;
+      box-shadow: 0 25px 70px rgba(0, 0, 0, 0.7);
+    }
+
+    .section-title-wrap {
       display: flex;
-      justify-content: center;
       align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .section-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 32px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .video-wrapper {
+      position: relative;
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), 0 0 50px rgba(245, 158, 11, 0.25);
+      border: 2px solid rgba(245, 158, 11, 0.4);
+      background: #000;
+      aspect-ratio: 16 / 9;
+      max-width: 100%;
+    }
+
+    video {
       width: 100%;
-      max-width: 1400px;
-      padding: 20px;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+    }
+
+    .download-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 26px;
+      background: linear-gradient(135deg, #00F0FF, #3B82F6);
+      color: #030712;
+      border-radius: 999px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 15px;
+      font-weight: 800;
+      text-decoration: none;
+      box-shadow: 0 0 25px rgba(0, 240, 255, 0.5);
+      transition: all 0.2s ease;
+    }
+
+    .download-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 35px rgba(0, 240, 255, 0.8);
+    }
+
+    .download-btn.gold {
+      background: linear-gradient(135deg, #FDE68A, #F59E0B);
+      color: #000;
+      box-shadow: 0 0 25px rgba(245, 158, 11, 0.5);
+    }
+
+    /* SECTION 2: POSTERS GRID */
+    .posters-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 36px;
+    }
+
+    @media (max-width: 1024px) {
+      .posters-grid { grid-template-columns: 1fr; }
     }
 
     .poster-card {
-      background: #080D1A;
-      border: 2px solid rgba(255, 255, 255, 0.1);
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 28px;
-      box-shadow: 0 25px 80px rgba(0, 0, 0, 0.7);
-      overflow: hidden;
-      transition: all 0.3s ease;
-      position: relative;
-    }
-
-    .poster-card.portrait {
-      width: 540px;
-      height: 960px;
-    }
-
-    .poster-card.landscape {
-      width: 1120px;
-      height: 630px;
-    }
-
-    .poster-card iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-      display: block;
-    }
-
-    .file-actions {
+      padding: 30px;
       display: flex;
-      gap: 12px;
-      margin-top: 24px;
-    }
-
-    /* Feature summary cards */
-    .summary-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 20px;
-      width: 100%;
-      max-width: 1200px;
-      margin-top: 50px;
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
-      padding-top: 40px;
-    }
-
-    .summary-card {
-      background: rgba(15, 23, 42, 0.6);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.07);
-      border-radius: 20px;
-      padding: 22px;
-    }
-
-    .summary-card h4 {
-      font-family: 'Outfit', sans-serif;
-      font-size: 18px;
-      font-weight: 800;
-      color: #F8FAFC;
-      margin-bottom: 8px;
-      display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 10px;
+      text-align: center;
     }
 
-    .summary-card p {
-      font-size: 13px;
-      color: #94A3B8;
-      line-height: 1.45;
+    .poster-preview-box {
+      width: 100%;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 15px 45px rgba(0, 0, 0, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      margin-bottom: 24px;
+      background: #060914;
+    }
+
+    .poster-preview-box img {
+      width: 100%;
+      height: auto;
+      display: block;
+      transition: transform 0.3s ease;
+    }
+
+    .poster-preview-box:hover img {
+      transform: scale(1.02);
     }
 
     /* Footer */
-    footer {
+    .site-footer {
       border-top: 1px solid rgba(255, 255, 255, 0.08);
-      padding: 24px;
+      padding: 32px;
       text-align: center;
-      font-size: 13px;
       color: #64748B;
+      font-size: 14px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .site-footer strong {
+      color: #CBD5E1;
     }
   </style>
 </head>
 <body>
-
-  <div class="bg-glow"></div>
+  <div class="bg-glow-gold"></div>
 
   <!-- Top Navigation -->
-  <header class="top-nav">
+  <nav class="top-nav">
     <div class="brand">
-      <img src="assets/logo.svg" alt="MEMOPIX Logo" />
-      <div class="brand-title">MEMO<span>PIX</span> DESIGN VAULT</div>
+      <img src="assets/logo.png" alt="MEMOPIX Logo">
+      <span class="brand-title">MEMOPIX</span>
     </div>
+    <div class="nav-badge">
+      <span>🪔</span>
+      <span>DIWALI RELEASE · 8TH NOVEMBER 2026</span>
+    </div>
+  </nav>
 
-    <div class="controls">
-      <div class="toggle-group">
-        <button id="tabPortrait" class="tab-btn active" onclick="switchView('portrait')">
-          <span>📱 Portrait (9:16)</span>
-        </button>
-        <button id="tabLandscape" class="tab-btn" onclick="switchView('landscape')">
-          <span>🖥️ Landscape (16:9)</span>
-        </button>
+  <div class="container">
+    <!-- Hero Header -->
+    <div class="hero-header">
+      <div class="hero-super">
+        <span>✨</span>
+        <span>OFFICIAL APP LAUNCH & DESIGN SUITE</span>
+        <span>✨</span>
       </div>
-
-      <a id="btnDownload" href="poster-portrait.png" download="MEMOPIX-Poster-Portrait.png" class="action-btn primary">
-        <span>⬇️ Download High-Res PNG</span>
-      </a>
-
-      <button onclick="openCurrentFullscreen()" class="action-btn">
-        <span>⛶ Open Fullscreen</span>
-      </button>
-
-      <button onclick="printCurrent()" class="action-btn">
-        <span>🖨️ Print / PDF</span>
-      </button>
-    </div>
-  </header>
-
-  <!-- Main Showcase Area -->
-  <main class="main-content">
-    <div class="intro-box">
-      <span class="intro-badge">OFFICIAL MARKETING POSTERS</span>
-      <h2 class="intro-title">MEMOPIX 5 TB Private Cloud Gallery</h2>
-      <p class="intro-desc">
-        Explore both the Portrait (9:16 mobile/flyer) and Landscape (16:9 billboard/desktop) posters detailing MEMOPIX's core capabilities, 5 TB capacity, and cross-platform ecosystem.
+      <h1 class="hero-h1">
+        <span class="glow-gold">CELEBRATE DIWALI WITH MEMOPIX</span>
+      </h1>
+      <p class="hero-p">
+        5 TB Private Cloud Storage, Cyber Gramophone Music Suite with 360° Rotating Disc, 
+        and Instant Fullscreen Slideshow. Grand Release on <strong>8th November 2026</strong>.
       </p>
     </div>
 
-    <div class="viewer-frame">
-      <div id="posterCard" class="poster-card portrait">
-        <iframe id="posterFrame" src="poster-portrait.html"></iframe>
+    <!-- ── SECTION 1: OFFICIAL PROMOTIONAL VIDEO (25 SECONDS) ── -->
+    <div class="section-box">
+      <div class="section-title-wrap">
+        <h2 class="section-title">
+          <span>🎬</span>
+          <span>Official 25-Second Promotional Video</span>
+        </h2>
+        <a href="memopix-diwali-launch.mp4" download="memopix-diwali-launch.mp4" class="download-btn gold">
+          <span>⬇️</span>
+          <span>Download 1080p MP4 (6.08 MB)</span>
+        </a>
+      </div>
+
+      <div class="video-wrapper">
+        <video controls poster="video_scenes/scene1.png" preload="auto">
+          <source src="memopix-diwali-launch.mp4" type="video/mp4">
+          Your browser does not support the video tag.
+        </video>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; font-size: 14px; color: #94A3B8; font-family: 'JetBrains Mono', monospace; flex-wrap: wrap; gap: 12px;">
+        <div><span>⏱️ DURATION:</span> <strong style="color: #FDE68A;">25.0 SECONDS</strong></div>
+        <div><span>🎞️ RESOLUTION:</span> <strong style="color: #67E8F9;">1920 × 1080 FULL HD (30 FPS)</strong></div>
+        <div><span>🎵 AUDIO:</span> <strong style="color: #C084FC;">FESTIVE CHIME & BASS SOUNDTRACK</strong></div>
+        <div><span>🚀 RELEASE:</span> <strong style="color: #F59E0B;">8TH NOVEMBER 2026</strong></div>
       </div>
     </div>
 
-    <div class="file-actions">
-      <a href="poster-portrait.html" target="_blank" class="action-btn">Open Portrait HTML (1080x1920)</a>
-      <a href="poster-landscape.html" target="_blank" class="action-btn">Open Landscape HTML (1920x1080)</a>
-      <a href="poster-portrait.png" target="_blank" class="action-btn">View Portrait PNG</a>
-      <a href="poster-landscape.png" target="_blank" class="action-btn">View Landscape PNG</a>
+    <!-- ── SECTION 2: OFFICIAL POSTERS (PORTRAIT & LANDSCAPE) ── -->
+    <div class="section-title-wrap" style="margin-bottom: 24px;">
+      <h2 class="section-title">
+        <span>🎨</span>
+        <span>Official Launch Posters (Portrait & Landscape)</span>
+      </h2>
     </div>
 
-    <!-- 6 Feature Overview -->
-    <div class="summary-grid">
-      <div class="summary-card">
-        <h4>📦 5 TB Massive Cloud Storage</h4>
-        <p>5,000,000,000,000 bytes dedicated quota. Huge capacity for over 1.5M photos, 10,000 4K videos, and 1M audio tracks with zero monthly subscription fees.</p>
+    <div class="posters-grid">
+      <!-- Portrait Poster Card -->
+      <div class="poster-card">
+        <div class="poster-preview-box">
+          <a href="poster-portrait.html" target="_blank">
+            <img src="poster-portrait.png" alt="MEMOPIX Portrait Poster (9:16)" />
+          </a>
+        </div>
+        <h3 style="font-family: 'Outfit', sans-serif; font-size: 24px; font-weight: 800; margin-bottom: 8px;">
+          Portrait Poster (9:16)
+        </h3>
+        <p style="font-size: 14px; color: #94A3B8; margin-bottom: 20px;">
+          1080 × 1920 px · Ideal for Instagram Stories, WhatsApp Status, Mobile Screens & Print Flyers.
+        </p>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;">
+          <a href="poster-portrait.png" download="memopix-poster-portrait.png" class="download-btn">
+            <span>⬇️</span>
+            <span>Download PNG</span>
+          </a>
+          <a href="poster-portrait.html" target="_blank" class="download-btn" style="background: rgba(255,255,255,0.1); color: #FFF; box-shadow: none; border: 1px solid rgba(255,255,255,0.2);">
+            <span>👁️</span>
+            <span>View Full HTML</span>
+          </a>
+        </div>
       </div>
 
-      <div class="summary-card">
-        <h4>⚡ Resumable Chunk Engine</h4>
-        <p>Unlimited per-file upload size. Seamlessly upload 10GB, 50GB, or 100GB+ high-bitrate video files with auto-pause, auto-retry, and zero browser memory bloat.</p>
-      </div>
-
-      <div class="summary-card">
-        <h4>🎵 Lossless Vinyl Audio Player</h4>
-        <p>Stream private MP3, WAV, FLAC, and AAC tracks across all devices. Features drag-to-reorder, custom playlists, OS lockscreen controls, and background playback.</p>
-      </div>
-
-      <div class="summary-card">
-        <h4>📁 Smart Media Organization</h4>
-        <p>Unified "All" gallery, Photos, 4K Videos, nested Folders, custom Albums, Favorites, and 30-day protected Trash recovery.</p>
-      </div>
-
-      <div class="summary-card">
-        <h4>🛡️ Cryptographic HMAC Privacy</h4>
-        <p>Zero third-party trackers or data harvesting. All media stream URLs are signed with short-lived HMAC tokens with private owner isolation.</p>
-      </div>
-
-      <div class="summary-card">
-        <h4>📱 Dual Platform: Web + Android APK</h4>
-        <p>Access your vault seamlessly from web browsers (Vercel) and native mobile phones with the dedicated MEMOPIX Android APK.</p>
+      <!-- Landscape Poster Card -->
+      <div class="poster-card">
+        <div class="poster-preview-box">
+          <a href="poster-landscape.html" target="_blank">
+            <img src="poster-landscape.png" alt="MEMOPIX Landscape Poster (16:9)" />
+          </a>
+        </div>
+        <h3 style="font-family: 'Outfit', sans-serif; font-size: 24px; font-weight: 800; margin-bottom: 8px;">
+          Landscape Poster (16:9)
+        </h3>
+        <p style="font-size: 14px; color: #94A3B8; margin-bottom: 20px;">
+          1920 × 1080 px · Ideal for YouTube Banners, Website Hero Sections, Desktop Wallpapers & Displays.
+        </p>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;">
+          <a href="poster-landscape.png" download="memopix-poster-landscape.png" class="download-btn">
+            <span>⬇️</span>
+            <span>Download PNG</span>
+          </a>
+          <a href="poster-landscape.html" target="_blank" class="download-btn" style="background: rgba(255,255,255,0.1); color: #FFF; box-shadow: none; border: 1px solid rgba(255,255,255,0.2);">
+            <span>👁️</span>
+            <span>View Full HTML</span>
+          </a>
+        </div>
       </div>
     </div>
-  </main>
+  </div>
 
-  <footer>
-    MEMOPIX Cloud Ecosystem • 5 TB Private Media Gallery • Designed for Unlimited Storage
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div>CREATED WITH PASSION BY <strong>SUCHITH KUMAR</strong> · MEMOPIX 5 TB PRIVATE CLOUD</div>
+    <div style="margin-top: 8px; font-size: 12px; color: #475569;">
+      OFFICIAL RELEASE: 8TH NOVEMBER 2026 (DIWALI SPECIAL) · ALL RIGHTS RESERVED
+    </div>
   </footer>
-
-  <script>
-    let currentMode = 'portrait';
-
-    function switchView(mode) {
-      currentMode = mode;
-      const card = document.getElementById('posterCard');
-      const frame = document.getElementById('posterFrame');
-      const tabP = document.getElementById('tabPortrait');
-      const tabL = document.getElementById('tabLandscape');
-      const downloadBtn = document.getElementById('btnDownload');
-
-      if (mode === 'portrait') {
-        card.className = 'poster-card portrait';
-        frame.src = 'poster-portrait.html';
-        tabP.className = 'tab-btn active';
-        tabL.className = 'tab-btn';
-        downloadBtn.href = 'poster-portrait.png';
-        downloadBtn.download = 'MEMOPIX-Poster-Portrait.png';
-      } else {
-        card.className = 'poster-card landscape';
-        frame.src = 'poster-landscape.html';
-        tabP.className = 'tab-btn';
-        tabL.className = 'tab-btn active';
-        downloadBtn.href = 'poster-landscape.png';
-        downloadBtn.download = 'MEMOPIX-Poster-Landscape.png';
-      }
-    }
-
-    function openCurrentFullscreen() {
-      const target = currentMode === 'portrait' ? 'poster-portrait.html' : 'poster-landscape.html';
-      window.open(target, '_blank');
-    }
-
-    function printCurrent() {
-      const frame = document.getElementById('posterFrame');
-      frame.contentWindow.print();
-    }
-  </script>
-
 </body>
 </html>
