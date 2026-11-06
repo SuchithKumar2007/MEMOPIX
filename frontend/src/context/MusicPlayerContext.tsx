@@ -31,6 +31,7 @@ interface MusicPlayerContextType {
   setShowQueue: (val: boolean) => void;
   addToQueue: (track: MediaItem) => void;
   removeFromQueue: (index: number) => void;
+  reorderQueue: (fromIndex: number, toIndex: number) => void;
   closePlayer: () => void;
 }
 
@@ -409,6 +410,34 @@ export const MusicPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setQueue(prev => prev.filter((_, i) => i !== index));
   }, []);
 
+  const reorderQueue = useCallback((fromIndex: number, toIndex: number) => {
+    setQueue(prev => {
+      if (fromIndex < 0 || fromIndex >= prev.length || toIndex < 0 || toIndex >= prev.length || fromIndex === toIndex) {
+        return prev;
+      }
+      const newQueue = [...prev];
+      const [movedItem] = newQueue.splice(fromIndex, 1);
+      newQueue.splice(toIndex, 0, movedItem);
+      queueRef.current = newQueue;
+
+      // Update currentIndex if playing item moved or if position shifted
+      setCurrentIndex(currentIdx => {
+        let newIdx = currentIdx;
+        if (currentIdx === fromIndex) {
+          newIdx = toIndex;
+        } else if (fromIndex < currentIdx && toIndex >= currentIdx) {
+          newIdx = currentIdx - 1;
+        } else if (fromIndex > currentIdx && toIndex <= currentIdx) {
+          newIdx = currentIdx + 1;
+        }
+        currentIndexRef.current = newIdx;
+        return newIdx;
+      });
+
+      return newQueue;
+    });
+  }, []);
+
   const closePlayer = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.pause();
@@ -450,6 +479,7 @@ export const MusicPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
         setShowQueue,
         addToQueue,
         removeFromQueue,
+        reorderQueue,
         closePlayer
       }}
     >

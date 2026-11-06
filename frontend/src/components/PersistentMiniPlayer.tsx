@@ -10,6 +10,8 @@ import {
   Repeat,
   Repeat1,
   ChevronDown,
+  ChevronUp,
+  GripVertical,
   ListMusic,
   X,
   Music,
@@ -65,6 +67,10 @@ export const PersistentMiniPlayer: React.FC = () => {
   const [lyricsSource, setLyricsSource] = useState<'id3' | 'lrc' | 'txt' | 'lrclib' | null>(null);
   const [lyricsLoading, setLyricsLoading] = useState(false);
 
+  // Drag & drop state for queue reordering
+  const [draggedQueueIdx, setDraggedQueueIdx] = useState<number | null>(null);
+  const [dragOverQueueIdx, setDragOverQueueIdx] = useState<number | null>(null);
+
   const lyricsContainerRef = useRef<HTMLDivElement | null>(null);
   const activeLineRef = useRef<HTMLDivElement | null>(null);
   const {
@@ -95,6 +101,7 @@ export const PersistentMiniPlayer: React.FC = () => {
     setShowQueue,
     playTrack,
     removeFromQueue,
+    reorderQueue,
     closePlayer
   } = useMusicPlayer();
 
@@ -424,42 +431,134 @@ export const PersistentMiniPlayer: React.FC = () => {
           {/* Main Body: Vinyl Disc / Artwork OR Queue OR Lyrics */}
           <div className="flex-1 flex items-center justify-center py-4 max-w-xl w-full mx-auto relative z-10">
             {showQueue ? (
-              <div className="w-full h-80 sm:h-96 bg-white/5 border border-white/10 rounded-3xl p-4 overflow-y-auto">
-                <div className="flex items-center justify-between mb-3 px-2">
-                  <h3 className="font-bold text-sm text-purple-300">Play Queue ({queue.length})</h3>
-                  <span className="text-xs text-gray-400">{currentIndex + 1} of {queue.length}</span>
+              <div className="w-full h-80 sm:h-96 bg-black/40 backdrop-blur-md border border-purple-500/25 rounded-3xl p-4 sm:p-5 flex flex-col shadow-[0_0_40px_rgba(139,92,246,0.15)]">
+                <div className="flex items-center justify-between mb-2.5 px-2 pb-2.5 border-b border-white/10">
+                  <div className="flex items-center gap-2">
+                    <ListMusic className="w-4 h-4 text-purple-400" />
+                    <h3 className="font-bold text-sm text-purple-200">Play Queue ({queue.length})</h3>
+                  </div>
+                  <span className="text-[11px] font-mono text-purple-300 bg-purple-500/15 px-2.5 py-0.5 rounded-full border border-purple-500/30">
+                    {currentIndex + 1} of {queue.length}
+                  </span>
                 </div>
-                <div className="space-y-1">
-                  {queue.map((track, idx) => (
-                    <div
-                      key={`${track.id}_${idx}`}
-                      onClick={() => playTrack(track, queue)}
-                      className={`flex items-center justify-between p-2.5 rounded-xl cursor-pointer transition-colors ${
-                        idx === currentIndex
-                          ? 'bg-purple-600/30 border border-purple-500/40 text-purple-300 font-bold'
-                          : 'hover:bg-white/10 text-gray-300'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <span className="text-xs text-gray-500 w-4 text-center">{idx + 1}</span>
-                        <div className="min-w-0">
-                          <p className="text-xs truncate">{track.originalName.replace(/\.[^/.]+$/, '')}</p>
-                          <p className="text-[10px] text-gray-500">{formatDuration(track.duration || 0)}</p>
+
+                <div className="text-[11px] text-gray-400 mb-2 px-2 flex items-center justify-between">
+                  <span className="flex items-center gap-1 text-purple-300/80">
+                    <GripVertical className="w-3.5 h-3.5" />
+                    <span>Drag items or use arrows to reorder queue</span>
+                  </span>
+                  <span className="text-[10px] text-gray-500 font-mono">Real-time sync</span>
+                </div>
+
+                <div className="space-y-1.5 flex-1 overflow-y-auto pr-1">
+                  {queue.map((track, idx) => {
+                    const isCurrent = idx === currentIndex;
+                    const isDragging = draggedQueueIdx === idx;
+                    const isDragOver = dragOverQueueIdx === idx;
+
+                    return (
+                      <div
+                        key={`${track.id}_${idx}`}
+                        draggable
+                        onDragStart={(e) => {
+                          setDraggedQueueIdx(idx);
+                          e.dataTransfer.effectAllowed = 'move';
+                          e.dataTransfer.setData('text/plain', String(idx));
+                        }}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = 'move';
+                          if (dragOverQueueIdx !== idx) {
+                            setDragOverQueueIdx(idx);
+                          }
+                        }}
+                        onDragLeave={() => {
+                          if (dragOverQueueIdx === idx) {
+                            setDragOverQueueIdx(null);
+                          }
+                        }}
+                        onDragEnd={() => {
+                          setDraggedQueueIdx(null);
+                          setDragOverQueueIdx(null);
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          if (draggedQueueIdx !== null && draggedQueueIdx !== idx) {
+                            reorderQueue(draggedQueueIdx, idx);
+                          }
+                          setDraggedQueueIdx(null);
+                          setDragOverQueueIdx(null);
+                        }}
+                        onClick={() => playTrack(track, queue)}
+                        className={`flex items-center justify-between p-2.5 rounded-xl cursor-pointer transition-all duration-150 select-none ${
+                          isDragging
+                            ? 'opacity-40 scale-95 border-2 border-dashed border-purple-400 bg-purple-950/40'
+                            : isDragOver
+                            ? 'bg-purple-600/40 border-2 border-purple-400 shadow-lg shadow-purple-500/25 scale-[1.01]'
+                            : isCurrent
+                            ? 'bg-gradient-to-r from-purple-900/60 to-indigo-900/50 border border-purple-500/50 text-white font-bold shadow-md shadow-purple-900/30'
+                            : 'bg-white/5 hover:bg-white/10 text-gray-300 border border-transparent'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          {/* Drag handle */}
+                          <div
+                            className="p-1 text-gray-500 hover:text-purple-300 cursor-grab active:cursor-grabbing flex-shrink-0"
+                            title="Drag to reorder"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <GripVertical className="w-4 h-4" />
+                          </div>
+
+                          {/* Index or Current Playing Dot */}
+                          <div className="w-5 text-center flex-shrink-0">
+                            {isCurrent ? (
+                              <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] inline-block animate-pulse" />
+                            ) : (
+                              <span className="text-xs text-gray-500 font-mono">{idx + 1}</span>
+                            )}
+                          </div>
+
+                          {/* Track Title and Duration */}
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs truncate font-medium">{track.originalName.replace(/\.[^/.]+$/, '')}</p>
+                            <p className="text-[10px] text-gray-400 font-mono">{formatDuration(track.duration || 0)}</p>
+                          </div>
+                        </div>
+
+                        {/* Reorder and Remove Actions */}
+                        <div className="flex items-center gap-1 flex-shrink-0 ml-2" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            disabled={idx === 0}
+                            onClick={() => reorderQueue(idx, idx - 1)}
+                            className="p-1 text-gray-400 hover:text-white disabled:opacity-20 disabled:hover:text-gray-400 rounded hover:bg-white/10 transition-colors"
+                            title="Move Up"
+                          >
+                            <ChevronUp className="w-3.5 h-3.5" />
+                          </button>
+
+                          <button
+                            disabled={idx === queue.length - 1}
+                            onClick={() => reorderQueue(idx, idx + 1)}
+                            className="p-1 text-gray-400 hover:text-white disabled:opacity-20 disabled:hover:text-gray-400 rounded hover:bg-white/10 transition-colors"
+                            title="Move Down"
+                          >
+                            <ChevronDown className="w-3.5 h-3.5" />
+                          </button>
+
+                          {idx !== currentIndex && (
+                            <button
+                              onClick={() => removeFromQueue(idx)}
+                              className="text-gray-500 hover:text-red-400 p-1 rounded hover:bg-red-500/10 transition-colors ml-1"
+                              title="Remove from queue"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </div>
                       </div>
-                      {idx !== currentIndex && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeFromQueue(idx);
-                          }}
-                          className="text-gray-500 hover:text-red-400 p-1"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             ) : showLyrics ? (
@@ -583,72 +682,162 @@ export const PersistentMiniPlayer: React.FC = () => {
                 </div>
               </div>
             ) : (
-              /* ── LUXURY ROTATING GRAMOPHONE RECORD PLAYER ── */
+              /* ── CYBER NEON ROTATING GRAMOPHONE TURNTABLE (Matching Reference Design) ── */
               <div className="flex flex-col items-center justify-center w-full">
-                {/* Gramophone Turntable Plinth Deck */}
+                {/* Cyber Turntable Plinth Deck */}
                 <div
-                  className="relative p-5 sm:p-7 rounded-[42px] bg-gradient-to-b from-[#16042b]/95 via-[#0b0114]/95 to-[#05000a]/95 border border-purple-500/25 shadow-[0_25px_80px_rgba(0,0,0,0.85),0_0_90px_rgba(147,51,234,0.22)] max-w-[340px] xs:max-w-sm sm:max-w-md w-full flex flex-col items-center justify-center cursor-pointer select-none group"
+                  className="relative p-5 sm:p-7 rounded-[38px] bg-gradient-to-br from-[#120726]/95 via-[#080214]/95 to-[#030108]/95 border border-cyan-500/25 shadow-[0_25px_80px_rgba(0,0,0,0.9),0_0_80px_rgba(6,182,212,0.2),0_0_100px_rgba(168,85,247,0.25)] max-w-[340px] xs:max-w-sm sm:max-w-md w-full flex flex-col items-center justify-center cursor-pointer select-none group overflow-hidden"
                   onClick={togglePlay}
                   title={isPlaying ? 'Click turntable to pause' : 'Click turntable to start'}
                 >
-                  {/* Outer Ambient Cosmic Radiant Glow */}
-                  <div className={`absolute -inset-10 rounded-[48px] bg-purple-600/20 blur-3xl -z-10 transition-opacity duration-700 ${isPlaying ? 'animate-pulse' : 'opacity-25'}`} />
+                  {/* Outer Ambient Cyber Cyan & Purple Cosmic Glow */}
+                  <div className={`absolute -inset-10 rounded-[44px] bg-gradient-to-r from-purple-600/20 via-pink-600/10 to-cyan-500/20 blur-3xl -z-10 transition-opacity duration-700 ${isPlaying ? 'animate-pulse' : 'opacity-25'}`} />
 
-                  {/* ── MECHANICAL GRAMOPHONE TONEARM / STYLUS NEEDLE ── */}
+                  {/* ── NEON SWIRL ENERGY TRAILS (Matching Reference Photo) ── */}
+                  <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible z-0" viewBox="0 0 400 340">
+                    <defs>
+                      <linearGradient id="cyberRibbonPurple" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#ec4899" stopOpacity="0.95" />
+                        <stop offset="50%" stopColor="#a855f7" stopOpacity="0.85" />
+                        <stop offset="100%" stopColor="#6366f1" stopOpacity="0" />
+                      </linearGradient>
+                      <linearGradient id="cyberRibbonCyan" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#00f0ff" stopOpacity="0" />
+                        <stop offset="30%" stopColor="#00f0ff" stopOpacity="0.95" />
+                        <stop offset="85%" stopColor="#38bdf8" stopOpacity="0.9" />
+                        <stop offset="100%" stopColor="#818cf8" stopOpacity="0.3" />
+                      </linearGradient>
+                      <filter id="cyberGlowFilter" x="-40%" y="-40%" width="180%" height="180%">
+                        <feGaussianBlur stdDeviation="5" result="b1" />
+                        <feGaussianBlur stdDeviation="10" result="b2" />
+                        <feMerge>
+                          <feMergeNode in="b2" />
+                          <feMergeNode in="b1" />
+                          <feMergeNode in="SourceGraphic" />
+                        </feMerge>
+                      </filter>
+                    </defs>
+                    {/* Left neon magenta/purple swooping ribbon */}
+                    <path
+                      d="M -15 200 C 5 120, 20 55, 95 32 C 160 10, 220 22, 260 42"
+                      fill="none"
+                      stroke="url(#cyberRibbonPurple)"
+                      strokeWidth="3.5"
+                      strokeLinecap="round"
+                      filter="url(#cyberGlowFilter)"
+                      className={isPlaying ? "animate-pulse" : "opacity-50"}
+                    />
+                    <path
+                      d="M 8 230 C 35 270, 60 305, 125 315"
+                      fill="none"
+                      stroke="url(#cyberRibbonPurple)"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      filter="url(#cyberGlowFilter)"
+                      className={isPlaying ? "animate-pulse" : "opacity-40"}
+                    />
+                    {/* Right & lower neon cyan swooping ribbon */}
+                    <path
+                      d="M 145 325 C 240 330, 335 295, 360 215 C 385 135, 365 70, 310 38"
+                      fill="none"
+                      stroke="url(#cyberRibbonCyan)"
+                      strokeWidth="3.5"
+                      strokeLinecap="round"
+                      filter="url(#cyberGlowFilter)"
+                      className={isPlaying ? "animate-pulse" : "opacity-50"}
+                    />
+                  </svg>
+
+                  {/* ── MECHANICAL CHROME TONEARM / STYLUS NEEDLE ── */}
                   <div
                     className="absolute top-3 right-5 sm:top-4 sm:right-7 pointer-events-none z-30 transition-transform duration-700 ease-out origin-top-right"
                     style={{
                       transform: isPlaying ? 'rotate(24deg)' : 'rotate(-16deg)'
                     }}
                   >
-                    {/* Tonearm Pivot Base (Brushed Metallic Chrome & Gold Ring) */}
-                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-tr from-gray-300 via-gray-100 to-gray-400 border-2 border-white/80 shadow-xl flex items-center justify-center relative">
-                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-gray-800 via-black to-gray-900 border border-gray-500 shadow-inner flex items-center justify-center">
-                        <div className="w-2.5 h-2.5 rounded-full bg-purple-500 shadow-[0_0_8px_#c084fc]" />
+                    {/* Tonearm Pivot Base (Brushed Metallic Chrome Turret) */}
+                    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-gradient-to-tr from-gray-300 via-gray-100 to-gray-400 border-2 border-white/90 shadow-[0_4px_16px_rgba(0,0,0,0.7)] flex items-center justify-center relative">
+                      <div className="w-7 h-7 rounded-full bg-gradient-to-br from-gray-800 via-black to-gray-900 border border-gray-500 shadow-inner flex items-center justify-center">
+                        <div className="w-3 h-3 rounded-full bg-gradient-to-tr from-cyan-400 to-purple-500 shadow-[0_0_10px_#00f0ff]" />
                       </div>
                     </div>
 
                     {/* Tonearm Metal Rod / Wand */}
-                    <div className="w-1.5 h-32 sm:h-38 bg-gradient-to-r from-gray-300 via-white to-gray-400 rounded-full shadow-lg ml-4 sm:ml-4.5 -mt-1 origin-top transform -rotate-12">
-                      {/* Headshell / Cartridge */}
+                    <div className="w-1.5 h-32 sm:h-38 bg-gradient-to-r from-gray-300 via-white to-gray-400 rounded-full shadow-lg ml-4.5 sm:ml-5 -mt-1 origin-top transform -rotate-12">
+                      {/* Headshell / Stylus Cartridge */}
                       <div className="absolute -bottom-6 -left-1.5 w-5 h-8 bg-gradient-to-b from-gray-900 via-black to-gray-900 rounded-sm border border-gray-600 shadow-2xl transform -rotate-15 flex flex-col items-center justify-between p-0.5">
-                        <div className="w-3 h-1 bg-purple-500 rounded-full shadow-[0_0_6px_#a855f7]" />
+                        {/* Neon Purple Cartridge Box (From reference photo) */}
+                        <div className="w-3.5 h-1.5 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full shadow-[0_0_8px_#c084fc]" />
                         {/* Glowing Stylus Needle Tip */}
-                        <div className={`w-0.5 h-2.5 bg-amber-200 transition-all duration-300 ${isPlaying ? 'shadow-[0_0_8px_#fef08a] bg-yellow-100' : 'opacity-60'}`} />
+                        <div className={`w-0.5 h-2.5 bg-cyan-200 transition-all duration-300 ${isPlaying ? 'shadow-[0_0_10px_#00f0ff] bg-cyan-100' : 'opacity-60'}`} />
                       </div>
                     </div>
                   </div>
 
                   {/* Turntable Platter Outer Metallic Beveled Rim */}
-                  <div className="relative w-60 h-60 xs:w-68 xs:h-68 sm:w-76 sm:h-76 md:w-80 md:h-80 rounded-full bg-gradient-to-tr from-gray-800 via-[#1c0638] to-gray-900 p-2.5 sm:p-3 shadow-2xl border border-purple-400/25 ring-2 ring-purple-900/40 flex items-center justify-center">
+                  <div className="relative w-60 h-60 xs:w-68 xs:h-68 sm:w-76 sm:h-76 md:w-80 md:h-80 rounded-full bg-gradient-to-tr from-gray-900 via-[#130628] to-gray-800 p-2.5 sm:p-3 shadow-[0_0_35px_rgba(6,182,212,0.3),inset_0_0_20px_rgba(168,85,247,0.3)] border border-cyan-400/30 ring-2 ring-purple-600/40 flex items-center justify-center z-10">
 
                     {/* ── ROTATING VINYL DISC RECORD ── */}
                     <div
-                      className={`w-full h-full rounded-full bg-gradient-to-br from-[#1b0533] via-[#090013] to-[#150228] border border-purple-500/30 shadow-2xl flex items-center justify-center relative select-none transition-transform ${
+                      className={`w-full h-full rounded-full bg-gradient-to-br from-[#120624] via-[#05010c] to-[#0c0318] border border-cyan-400/20 shadow-2xl flex items-center justify-center relative select-none transition-transform ${
                         isPlaying ? 'animate-spin-slow' : 'animate-spin-slow animation-paused'
                       }`}
                     >
-                      {/* Vinyl Conic Sheen Reflection (Authentic turntable gleam) */}
-                      <div className="absolute inset-0 rounded-full bg-[conic-gradient(from_0deg,transparent_0deg,rgba(255,255,255,0.06)_50deg,transparent_110deg,rgba(255,255,255,0.06)_230deg,transparent_290deg)] pointer-events-none" />
+                      {/* Vinyl Conic Specular Gleam Reflection */}
+                      <div className="absolute inset-0 rounded-full bg-[conic-gradient(from_45deg,transparent_0deg,rgba(0,240,255,0.08)_50deg,transparent_100deg,rgba(236,72,153,0.08)_230deg,transparent_280deg)] pointer-events-none" />
 
-                      {/* Ring 1 — Outer vinyl edge band */}
-                      <div className="w-[92%] h-[92%] rounded-full border border-purple-800/40 flex items-center justify-center">
-                        {/* Ring 2 — Outer subtle white groove */}
-                        <div className="w-[86%] h-[86%] rounded-full border border-white/20 flex items-center justify-center">
-                          {/* Ring 3 — Mid dark band */}
-                          <div className="w-[80%] h-[80%] rounded-full border border-purple-700/30 flex items-center justify-center">
-                            {/* Ring 4 — Crisp luminous white groove */}
-                            <div className="w-[74%] h-[74%] rounded-full border border-white/50 shadow-[0_0_12px_rgba(255,255,255,0.2)] flex items-center justify-center">
-                              {/* Ring 5 — Brightest luminous crisp white groove (matching reference) */}
-                              <div className="w-[68%] h-[68%] rounded-full border border-white/80 shadow-[0_0_16px_rgba(255,255,255,0.4)] flex items-center justify-center">
+                      {/* Ring 1 — Outer vinyl edge band with cyan neon rim light */}
+                      <div className="w-[93%] h-[93%] rounded-full border border-cyan-500/30 shadow-[inset_0_0_10px_rgba(6,182,212,0.2)] flex items-center justify-center">
+                        {/* Ring 2 — Microgroove 1 */}
+                        <div className="w-[87%] h-[87%] rounded-full border border-white/20 flex items-center justify-center">
+                          {/* Ring 3 — Deep dark track spacing */}
+                          <div className="w-[81%] h-[81%] rounded-full border border-purple-700/30 flex items-center justify-center">
+                            {/* Ring 4 — Luminous grooved track */}
+                            <div className="w-[75%] h-[75%] rounded-full border border-cyan-300/40 shadow-[0_0_8px_rgba(6,182,212,0.3)] flex items-center justify-center">
+                              {/* Ring 5 — Brightest concentric sheen groove */}
+                              <div className="w-[69%] h-[69%] rounded-full border border-white/60 shadow-[0_0_12px_rgba(255,255,255,0.3)] flex items-center justify-center">
                                 
-                                {/* Central Glowing Purple Label Core */}
-                                <div className="w-22 h-22 sm:w-26 sm:h-26 rounded-full bg-gradient-to-tr from-[#9333ea] via-[#a855f7] to-[#7c3aed] flex items-center justify-center shadow-[0_0_45px_rgba(168,85,247,0.95)] border-2 border-white/60 ring-4 ring-purple-500/30 relative">
-                                  <Music className="w-9 h-9 sm:w-11 sm:h-11 text-white drop-shadow-[0_2px_12px_rgba(255,255,255,0.9)]" />
+                                {/* ── CENTRAL CYBER NEON CLOUD 'M' EMBLEM (Exact from reference) ── */}
+                                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#080314] flex items-center justify-center relative shadow-[0_0_35px_rgba(6,182,212,0.85),0_0_50px_rgba(168,85,247,0.75)] border-2 border-cyan-400/80 ring-2 ring-purple-500/80">
+                                  {/* Neon Cloud with 'M' Monogram */}
+                                  <svg viewBox="0 0 100 80" className="w-14 h-11 sm:w-16 sm:h-13 filter drop-shadow-[0_0_8px_#00f0ff] drop-shadow-[0_0_12px_#ec4899]">
+                                    <defs>
+                                      <linearGradient id="cyberCloudGrad" x1="0%" y1="0%" x2="100%" y2="50%">
+                                        <stop offset="0%" stopColor="#00f0ff" />
+                                        <stop offset="45%" stopColor="#38bdf8" />
+                                        <stop offset="70%" stopColor="#c084fc" />
+                                        <stop offset="100%" stopColor="#ec4899" />
+                                      </linearGradient>
+                                    </defs>
+                                    {/* Cloud Outline */}
+                                    <path
+                                      d="M 28 55 C 20 55 16 48 18 40 C 19 33 26 30 30 31 C 32 20 44 14 55 17 C 64 19 70 27 70 34 C 77 34 83 40 82 48 C 81 55 75 55 68 55 Z"
+                                      fill="none"
+                                      stroke="url(#cyberCloudGrad)"
+                                      strokeWidth="5"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    />
+                                    {/* Stylized 'M' inside Cloud */}
+                                    <path
+                                      d="M 38 48 L 44 33 L 50 43 L 56 33 L 62 48"
+                                      fill="none"
+                                      stroke="#ffffff"
+                                      strokeWidth="4"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    />
+                                    {/* Neon Sparkle Star on 'M' */}
+                                    <polygon
+                                      points="63,33 64.5,29 66,33 70,34.5 66,36 64.5,40 63,36 59,34.5"
+                                      fill="#00f0ff"
+                                      className="filter drop-shadow-[0_0_4px_#ffffff]"
+                                    />
+                                  </svg>
 
-                                  {/* Center Metallic Spindle Pin Hole */}
+                                  {/* Center Metallic Spindle Hole */}
                                   <div className="w-3.5 h-3.5 rounded-full bg-gradient-to-tr from-gray-200 via-gray-300 to-gray-500 border border-white/90 shadow-md absolute inset-0 m-auto flex items-center justify-center">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-[#1b0533]" />
+                                    <div className="w-1.5 h-1.5 rounded-full bg-[#080314]" />
                                   </div>
                                 </div>
 
@@ -661,33 +850,103 @@ export const PersistentMiniPlayer: React.FC = () => {
                   </div>
 
                   {/* Turntable Plinth Lower Deck Bar */}
-                  <div className="w-full flex items-center justify-between text-[10px] font-mono text-purple-400/80 mt-3 px-2">
+                  <div className="w-full flex items-center justify-between text-[10px] font-mono text-cyan-400/90 mt-3 px-2 z-10">
                     <div className="flex items-center gap-1.5">
-                      <span className={`w-1.5 h-1.5 rounded-full transition-colors ${isPlaying ? 'bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse' : 'bg-gray-500'}`} />
+                      <span className={`w-1.5 h-1.5 rounded-full transition-colors ${isPlaying ? 'bg-cyan-400 shadow-[0_0_8px_#00f0ff] animate-pulse' : 'bg-gray-500'}`} />
                       <span className="uppercase tracking-wider font-bold text-gray-300 text-[10px]">
-                        {isPlaying ? 'GRAMOPHONE TURNTABLE ACTIVE' : 'TONEARM RESTING · PAUSED'}
+                        {isPlaying ? 'CYBER TURNTABLE ACTIVE' : 'TONEARM RESTING · PAUSED'}
                       </span>
                     </div>
-                    <span className="font-semibold text-purple-400/90 tracking-widest uppercase text-[10px]">
+                    <span className="font-semibold text-purple-300 tracking-widest uppercase text-[10px]">
                       33 ⅓ RPM · LOSSLESS
                     </span>
                   </div>
                 </div>
 
-                {/* Live Real-Time Equalizer Frequency Visualizer */}
-                <div className="flex items-end justify-center gap-1 h-5 mt-4 px-4">
-                  {[35, 60, 45, 80, 50, 95, 70, 40, 85, 65, 90, 55, 75, 45, 85, 60, 40, 70, 50, 30].map((h, i) => (
-                    <span
-                      key={i}
-                      className={`w-1 rounded-full bg-gradient-to-t from-purple-500 to-indigo-300 transition-all duration-150 ${
-                        isPlaying ? 'animate-pulse' : 'opacity-25'
-                      }`}
-                      style={{
-                        height: isPlaying ? `${h}%` : '20%',
-                        animationDelay: `${(i % 6) * 100}ms`
-                      }}
-                    />
-                  ))}
+                {/* ── LIVE NEON FREQUENCY EQUALIZER SPECTRUM (Matches Reference Photo) ── */}
+                <div className="flex flex-col items-center mt-5 w-full max-w-sm sm:max-w-md px-2">
+                  {/* Equalizer Frequency Bars */}
+                  <div className="flex items-end justify-center gap-1 sm:gap-1.5 h-9 w-full">
+                    {[
+                      { h: 35, c: 'from-purple-600 to-pink-500 shadow-[0_0_6px_#d946ef]' },
+                      { h: 55, c: 'from-purple-600 to-pink-500 shadow-[0_0_6px_#d946ef]' },
+                      { h: 70, c: 'from-purple-500 to-indigo-500 shadow-[0_0_6px_#a855f7]' },
+                      { h: 45, c: 'from-purple-500 to-indigo-500 shadow-[0_0_6px_#a855f7]' },
+                      { h: 80, c: 'from-indigo-500 to-cyan-500 shadow-[0_0_8px_#00f0ff]' },
+                      { h: 95, c: 'from-cyan-500 to-sky-400 shadow-[0_0_10px_#00f0ff]' },
+                      { h: 60, c: 'from-cyan-500 to-sky-400 shadow-[0_0_8px_#00f0ff]' },
+                      { h: 85, c: 'from-cyan-400 to-teal-400 shadow-[0_0_10px_#00f0ff]' },
+                      { h: 50, c: 'from-cyan-400 to-teal-400 shadow-[0_0_8px_#00f0ff]' },
+                      { h: 100, c: 'from-cyan-400 to-white shadow-[0_0_12px_#00f0ff]' },
+                      { h: 75, c: 'from-cyan-500 to-sky-400 shadow-[0_0_10px_#00f0ff]' },
+                      { h: 90, c: 'from-cyan-500 to-sky-400 shadow-[0_0_10px_#00f0ff]' },
+                      { h: 65, c: 'from-sky-500 to-indigo-500 shadow-[0_0_8px_#00f0ff]' },
+                      { h: 85, c: 'from-indigo-500 to-purple-500 shadow-[0_0_8px_#a855f7]' },
+                      { h: 55, c: 'from-purple-500 to-pink-500 shadow-[0_0_8px_#d946ef]' },
+                      { h: 75, c: 'from-purple-600 to-pink-500 shadow-[0_0_6px_#ec4899]' },
+                      { h: 40, c: 'from-pink-600 to-purple-600 shadow-[0_0_6px_#ec4899]' },
+                      { h: 60, c: 'from-purple-600 to-pink-500 shadow-[0_0_6px_#d946ef]' },
+                      { h: 80, c: 'from-indigo-500 to-cyan-500 shadow-[0_0_8px_#00f0ff]' },
+                      { h: 45, c: 'from-cyan-500 to-sky-400 shadow-[0_0_8px_#00f0ff]' },
+                      { h: 90, c: 'from-cyan-400 to-white shadow-[0_0_10px_#00f0ff]' },
+                      { h: 70, c: 'from-cyan-500 to-sky-400 shadow-[0_0_8px_#00f0ff]' },
+                      { h: 85, c: 'from-indigo-500 to-purple-500 shadow-[0_0_8px_#a855f7]' },
+                      { h: 50, c: 'from-purple-500 to-pink-500 shadow-[0_0_6px_#d946ef]' },
+                      { h: 65, c: 'from-purple-600 to-pink-600 shadow-[0_0_6px_#ec4899]' },
+                      { h: 35, c: 'from-pink-600 to-purple-700 shadow-[0_0_4px_#ec4899]' }
+                    ].map((bar, i) => (
+                      <span
+                        key={i}
+                        className={`w-1 sm:w-1.5 rounded-t-sm bg-gradient-to-t ${bar.c} transition-all duration-150 ${
+                          isPlaying ? 'animate-pulse' : 'opacity-30'
+                        }`}
+                        style={{
+                          height: isPlaying ? `${bar.h}%` : '20%',
+                          animationDelay: `${(i % 8) * 80}ms`
+                        }}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Equalizer Glossy Reflection (Mirror row from reference photo) */}
+                  <div className="flex items-start justify-center gap-1 sm:gap-1.5 h-3.5 w-full opacity-25 scale-y-[-1] blur-[0.5px] pointer-events-none -mt-0.5">
+                    {[
+                      { h: 35, c: 'from-purple-600 to-pink-500' },
+                      { h: 55, c: 'from-purple-600 to-pink-500' },
+                      { h: 70, c: 'from-purple-500 to-indigo-500' },
+                      { h: 45, c: 'from-purple-500 to-indigo-500' },
+                      { h: 80, c: 'from-indigo-500 to-cyan-500' },
+                      { h: 95, c: 'from-cyan-500 to-sky-400' },
+                      { h: 60, c: 'from-cyan-500 to-sky-400' },
+                      { h: 85, c: 'from-cyan-400 to-teal-400' },
+                      { h: 50, c: 'from-cyan-400 to-teal-400' },
+                      { h: 100, c: 'from-cyan-400 to-white' },
+                      { h: 75, c: 'from-cyan-500 to-sky-400' },
+                      { h: 90, c: 'from-cyan-500 to-sky-400' },
+                      { h: 65, c: 'from-sky-500 to-indigo-500' },
+                      { h: 85, c: 'from-indigo-500 to-purple-500' },
+                      { h: 55, c: 'from-purple-500 to-pink-500' },
+                      { h: 75, c: 'from-purple-600 to-pink-500' },
+                      { h: 40, c: 'from-pink-600 to-purple-600' },
+                      { h: 60, c: 'from-purple-600 to-pink-500' },
+                      { h: 80, c: 'from-indigo-500 to-cyan-500' },
+                      { h: 45, c: 'from-cyan-500 to-sky-400' },
+                      { h: 90, c: 'from-cyan-400 to-white' },
+                      { h: 70, c: 'from-cyan-500 to-sky-400' },
+                      { h: 85, c: 'from-indigo-500 to-purple-500' },
+                      { h: 50, c: 'from-purple-500 to-pink-500' },
+                      { h: 65, c: 'from-purple-600 to-pink-600' },
+                      { h: 35, c: 'from-pink-600 to-purple-700' }
+                    ].map((bar, i) => (
+                      <span
+                        key={i}
+                        className={`w-1 sm:w-1.5 rounded-t-sm bg-gradient-to-t ${bar.c} transition-all duration-150`}
+                        style={{
+                          height: isPlaying ? `${Math.min(100, bar.h * 0.6)}%` : '15%'
+                        }}
+                      />
+                    ))}
+                  </div>
                 </div>
 
                 {/* Track Title & Lossless Badge */}
@@ -696,9 +955,9 @@ export const PersistentMiniPlayer: React.FC = () => {
                     {cleanTitle}
                   </h2>
                   <div className="flex items-center justify-center gap-2 mt-1">
-                    <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-purple-300 bg-purple-500/10 border border-purple-500/20 px-3 py-0.5 rounded-full shadow-sm">
-                      <Sparkles className="w-3 h-3 text-purple-400" />
-                      5 TB Audiophile Cloud · Hi-Fi Master
+                    <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-cyan-300 bg-cyan-500/10 border border-cyan-500/25 px-3 py-0.5 rounded-full shadow-[0_0_12px_rgba(6,182,212,0.2)]">
+                      <Sparkles className="w-3 h-3 text-cyan-400" />
+                      5 TB Audiophile Cloud · Cyber Hi-Fi Master
                     </span>
                   </div>
                 </div>
