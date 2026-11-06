@@ -6,6 +6,7 @@ import {
   ZoomIn,
   ZoomOut,
   RotateCw,
+  RotateCcw,
   Heart,
   Share2,
   Download,
@@ -51,6 +52,9 @@ export const PhotoViewer: React.FC<PhotoViewerProps> = ({
 }) => {
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const isDragging = useRef(false);
+  const dragStart = useRef({ x: 0, y: 0 });
   const [showInfo, setShowInfo] = useState(false);
   const [isSlideshow, setIsSlideshow] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
@@ -58,7 +62,7 @@ export const PhotoViewer: React.FC<PhotoViewerProps> = ({
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
 
-  // Touch swipe tracking
+  // Touch swipe & pan tracking
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
 
@@ -66,6 +70,8 @@ export const PhotoViewer: React.FC<PhotoViewerProps> = ({
     // Reset transform when media changes
     setZoom(1);
     setRotation(0);
+    setPan({ x: 0, y: 0 });
+    isDragging.current = false;
     setIsRenaming(false);
     setRenameValue('');
     setImageError(false);
@@ -114,8 +120,18 @@ export const PhotoViewer: React.FC<PhotoViewerProps> = ({
     if (hasNext) onNavigate(mediaList[currentIndex + 1]);
   };
 
-  const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.25, 3));
-  const handleZoomOut = () => setZoom(prev => Math.max(prev - 0.25, 0.5));
+  const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.35, 4));
+  const handleZoomOut = () => {
+    setZoom(prev => {
+      const next = Math.max(prev - 0.35, 0.5);
+      if (next <= 1) setPan({ x: 0, y: 0 });
+      return next;
+    });
+  };
+  const handleResetZoom = () => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  };
   const handleRotate = () => setRotation(prev => (prev + 90) % 360);
 
   const handleRenameStart = () => {
@@ -136,13 +152,73 @@ export const PhotoViewer: React.FC<PhotoViewerProps> = ({
     if (e.key === 'Escape') setIsRenaming(false);
   };
 
-  // Mobile Touch Swipe Handlers
+  // Mouse Pan & Drag Handlers (Laptop / Desktop)
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (zoom > 1) {
+      e.preventDefault();
+      isDragging.current = true;
+      dragStart.current = { x: e.clientX - pan.x, y: e.clientY - pan.y };
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isDragging.current && zoom > 1) {
+      e.preventDefault();
+      setPan({
+        x: e.clientX - dragStart.current.x,
+        y: e.clientY - dragStart.current.y
+      });
+    }
+  };
+
+  const handleMouseUp = () => {
+    isDragging.current = false;
+  };
+
+  // Laptop Trackpad / Mouse Wheel: Scrolls down/up/left/right after zoom!
+  const handleWheel = (e: React.WheelEvent) => {
+    if (e.ctrlKey) {
+      e.preventDefault();
+      const delta = e.deltaY < 0 ? 0.25 : -0.25;
+      setZoom(prev => {
+        const next = Math.max(0.5, Math.min(4, prev + delta));
+        if (next <= 1) setPan({ x: 0, y: 0 });
+        return next;
+      });
+    } else if (zoom > 1) {
+      e.preventDefault();
+      setPan(prev => ({
+        x: prev.x - e.deltaX,
+        y: prev.y - e.deltaY
+      }));
+    }
+  };
+
+  // Mobile Touch Swipe & Pan Handlers
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
+    if (zoom > 1 && e.touches.length === 1) {
+      dragStart.current = { x: e.touches[0].clientX - pan.x, y: e.touches[0].clientY - pan.y };
+      isDragging.current = true;
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (isDragging.current && zoom > 1 && e.touches.length === 1) {
+      setPan({
+        x: e.touches[0].clientX - dragStart.current.x,
+        y: e.touches[0].clientY - dragStart.current.y
+      });
+    }
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
+    if (zoom > 1) {
+      isDragging.current = false;
+      return;
+    }
+
     if (touchStartX.current === null || touchStartY.current === null) return;
 
     const deltaX = e.changedTouches[0].clientX - touchStartX.current;
@@ -162,7 +238,12 @@ export const PhotoViewer: React.FC<PhotoViewerProps> = ({
   };
 
   const handleDoubleTap = () => {
-    setZoom(prev => (prev === 1 ? 2 : 1));
+    if (zoom === 1) {
+      setZoom(2);
+    } else {
+      setZoom(1);
+      setPan({ x: 0, y: 0 });
+    }
   };
 
   return (
@@ -172,16 +253,17 @@ export const PhotoViewer: React.FC<PhotoViewerProps> = ({
       onTouchEnd={handleTouchEnd}
     >
       {/* Top Controls Bar */}
-      <div className="h-16 px-4 flex items-center justify-between z-20 bg-gradient-to-b from-black/80 to-transparent">
+      <div className="h-16 px-3 sm:px-6 flex items-center justify-between z-20 bg-gradient-to-b from-black/85 via-black/50 to-transparent">
         {/* Left: Close & Filename */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 mr-2">
           <button
             onClick={onClose}
-            className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
+            className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-colors flex-shrink-0"
+            title="Close"
           >
-            <X className="w-6 h-6" />
+            <X className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
-          <div className="text-white">
+          <div className="text-white min-w-0 flex-1">
             {isRenaming ? (
               <div className="flex items-center gap-2">
                 <input
@@ -190,24 +272,24 @@ export const PhotoViewer: React.FC<PhotoViewerProps> = ({
                   onChange={e => setRenameValue(e.target.value)}
                   onBlur={handleRenameCommit}
                   onKeyDown={handleRenameKeyDown}
-                  className="text-sm font-semibold bg-white/10 text-white rounded-lg px-2 py-0.5 w-48 sm:w-72 outline-none border border-white/40 focus:border-brand-400"
+                  className="text-xs sm:text-sm font-semibold bg-white/10 text-white rounded-lg px-2 py-0.5 w-36 sm:w-72 outline-none border border-white/40 focus:border-brand-400"
                 />
-                <button onClick={handleRenameCommit} className="p-1 bg-brand-500 hover:bg-brand-600 text-white rounded-lg transition-colors" title="Save rename">
+                <button onClick={handleRenameCommit} className="p-1 bg-brand-500 hover:bg-brand-600 text-white rounded-lg transition-colors flex-shrink-0" title="Save rename">
                   <Check className="w-3.5 h-3.5" />
                 </button>
-                <button onClick={() => setIsRenaming(false)} className="p-1 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors" title="Cancel">
+                <button onClick={() => setIsRenaming(false)} className="p-1 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors flex-shrink-0" title="Cancel">
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-1.5 group/rename">
-                <p className="text-sm font-semibold truncate max-w-xs sm:max-w-md">
+              <div className="flex items-center gap-1.5 group/rename min-w-0">
+                <p className="text-xs sm:text-sm font-semibold truncate max-w-[130px] xs:max-w-[200px] sm:max-w-md">
                   {media.originalName}
                 </p>
                 {onRename && (
                   <button
                     onClick={handleRenameStart}
-                    className="p-1 text-brand-300 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+                    className="p-1 text-brand-300 hover:text-white hover:bg-white/10 rounded-lg transition-all flex-shrink-0"
                     title="Rename file"
                   >
                     <Pencil className="w-3.5 h-3.5" />
@@ -215,19 +297,19 @@ export const PhotoViewer: React.FC<PhotoViewerProps> = ({
                 )}
               </div>
             )}
-            <p className="text-xs text-white/60">
+            <p className="text-[10px] text-white/60 truncate hidden xs:block">
               {format(parseISO(media.createdAt), 'MMMM d, yyyy • h:mm a')}
             </p>
           </div>
         </div>
 
-        {/* Right: Actions */}
-        <div className="flex items-center gap-1 sm:gap-2">
+        {/* Right: Actions (Desktop & Mobile) */}
+        <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
           {/* Slideshow button */}
           <button
             onClick={() => setIsSlideshow(prev => !prev)}
             title={isSlideshow ? 'Pause Slideshow' : 'Start Slideshow'}
-            className={`p-2 rounded-xl transition-colors ${
+            className={`p-2 rounded-xl transition-colors hidden sm:flex ${
               isSlideshow ? 'text-purple-400 bg-purple-500/20' : 'text-white/80 hover:text-white hover:bg-white/10'
             }`}
           >
@@ -259,7 +341,7 @@ export const PhotoViewer: React.FC<PhotoViewerProps> = ({
           <button
             onClick={() => onFavorite(media.id, !media.isFavorite)}
             title="Favorite"
-            className={`p-2 rounded-xl transition-colors ${
+            className={`p-1.5 sm:p-2 rounded-xl transition-colors ${
               media.isFavorite ? 'text-rose-500 bg-rose-500/20' : 'text-white/80 hover:text-white hover:bg-white/10'
             }`}
           >
@@ -269,16 +351,16 @@ export const PhotoViewer: React.FC<PhotoViewerProps> = ({
           <button
             onClick={() => onShare(media)}
             title="Share"
-            className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
+            className="p-1.5 sm:p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
           >
             <Share2 className="w-5 h-5" />
           </button>
 
           <a
-            href={media.downloadUrl}
+            href={resolveMediaUrl(media.downloadUrl)}
             download={media.originalName}
             title="Download"
-            className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
+            className="p-1.5 sm:p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
           >
             <Download className="w-5 h-5" />
           </a>
@@ -286,7 +368,7 @@ export const PhotoViewer: React.FC<PhotoViewerProps> = ({
           <button
             onClick={() => setShowInfo(prev => !prev)}
             title="Information"
-            className={`p-2 rounded-xl transition-colors ${
+            className={`p-2 rounded-xl transition-colors hidden sm:flex ${
               showInfo ? 'text-brand-400 bg-brand-500/20' : 'text-white/80 hover:text-white hover:bg-white/10'
             }`}
           >
@@ -297,7 +379,7 @@ export const PhotoViewer: React.FC<PhotoViewerProps> = ({
             <button
               onClick={() => onArchive(media.id, !media.isArchived)}
               title={media.isArchived ? 'Unarchive — Restore to gallery' : 'Archive memory'}
-              className={`p-2 rounded-xl transition-colors ${
+              className={`p-2 rounded-xl transition-colors hidden sm:flex ${
                 media.isArchived ? 'text-amber-400 bg-amber-500/20' : 'text-white/80 hover:text-amber-400 hover:bg-white/10'
               }`}
             >
@@ -308,15 +390,23 @@ export const PhotoViewer: React.FC<PhotoViewerProps> = ({
           <button
             onClick={() => onTrash(media.id)}
             title="Move to Trash"
-            className="p-2 text-white/80 hover:text-rose-400 hover:bg-rose-500/20 rounded-xl transition-colors"
+            className="p-1.5 sm:p-2 text-white/80 hover:text-rose-400 hover:bg-rose-500/20 rounded-xl transition-colors"
           >
             <Trash2 className="w-5 h-5" />
           </button>
         </div>
       </div>
 
-      {/* Main Image Container & Info Drawer */}
-      <div className="flex-1 relative flex items-center justify-center overflow-hidden">
+      {/* Main Image Container with Pan & Wheel Support */}
+      <div
+        className="flex-1 relative flex items-center justify-center overflow-hidden"
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onWheel={handleWheel}
+        onTouchMove={handleTouchMove}
+      >
         {/* Previous Button */}
         {hasPrev && (
           <button
@@ -327,12 +417,15 @@ export const PhotoViewer: React.FC<PhotoViewerProps> = ({
           </button>
         )}
 
-        {/* Photo Canvas */}
+        {/* Photo Canvas (Translates & Scales with Smooth Drag & Wheel Pan) */}
         <div
-          className="w-full h-full flex items-center justify-center p-2 sm:p-4 transition-transform duration-200 cursor-zoom-in relative"
+          className={`w-full h-full flex items-center justify-center p-2 sm:p-4 relative select-none ${
+            zoom > 1 ? (isDragging.current ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-zoom-in'
+          }`}
           onDoubleClick={handleDoubleTap}
           style={{
-            transform: `scale(${zoom}) rotate(${rotation}deg)`
+            transform: `translate3d(${pan.x}px, ${pan.y}px, 0px) scale(${zoom}) rotate(${rotation}deg)`,
+            transition: isDragging.current ? 'none' : 'transform 150ms ease-out'
           }}
         >
           {imageLoading && !imageError && (
@@ -367,15 +460,91 @@ export const PhotoViewer: React.FC<PhotoViewerProps> = ({
           <img
             src={resolveMediaUrl(media.streamUrl)}
             alt={media.originalName}
+            draggable={false}
             onLoad={() => setImageLoading(false)}
             onError={() => {
               setImageLoading(false);
               setImageError(true);
             }}
-            className={`max-h-[82vh] max-w-[92vw] sm:max-w-[88vw] object-contain rounded-lg shadow-2xl transition-all ${
+            className={`max-h-[82vh] max-w-[92vw] sm:max-w-[88vw] object-contain rounded-lg shadow-2xl transition-opacity pointer-events-none ${
               imageLoading || imageError ? 'opacity-0' : 'opacity-100'
             }`}
           />
+        </div>
+
+        {/* Floating Reset Zoom Badge (appears when zoomed in) */}
+        {zoom > 1 && (
+          <button
+            onClick={handleResetZoom}
+            className="absolute bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 z-30 px-4 py-2 bg-black/80 hover:bg-black text-white text-xs font-bold rounded-full border border-white/20 shadow-2xl backdrop-blur-md flex items-center gap-2 active:scale-95 transition-all"
+            title="Reset to 100%"
+          >
+            <RotateCcw className="w-3.5 h-3.5 text-brand-400" />
+            <span>Reset Zoom ({Math.round(zoom * 100)}%)</span>
+          </button>
+        )}
+
+        {/* Mobile Portrait Action Bar (Floats at bottom of screen on phones, ensuring all buttons are visible) */}
+        <div className="sm:hidden fixed bottom-5 left-4 right-4 z-30 bg-black/85 backdrop-blur-xl border border-white/15 rounded-2xl p-2 px-3 flex items-center justify-around shadow-2xl animate-slide-up text-white/85">
+          <button
+            onClick={handleZoomOut}
+            disabled={zoom <= 0.5}
+            className="p-2 active:scale-90 transition-transform disabled:opacity-30"
+            title="Zoom Out"
+          >
+            <ZoomOut className="w-5 h-5" />
+          </button>
+          <button
+            onClick={handleZoomIn}
+            disabled={zoom >= 4}
+            className="p-2 active:scale-90 transition-transform disabled:opacity-30"
+            title="Zoom In"
+          >
+            <ZoomIn className="w-5 h-5" />
+          </button>
+          <button
+            onClick={handleRotate}
+            className="p-2 active:scale-90 transition-transform"
+            title="Rotate"
+          >
+            <RotateCw className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => onFavorite(media.id, !media.isFavorite)}
+            className={`p-2 active:scale-90 transition-transform ${media.isFavorite ? 'text-rose-500' : ''}`}
+            title="Favorite"
+          >
+            <Heart className={`w-5 h-5 ${media.isFavorite ? 'fill-rose-500' : ''}`} />
+          </button>
+          <button
+            onClick={() => onShare(media)}
+            className="p-2 active:scale-90 transition-transform"
+            title="Share"
+          >
+            <Share2 className="w-5 h-5" />
+          </button>
+          <a
+            href={resolveMediaUrl(media.downloadUrl)}
+            download={media.originalName}
+            className="p-2 active:scale-90 transition-transform"
+            title="Download"
+          >
+            <Download className="w-5 h-5" />
+          </a>
+          <button
+            onClick={() => setShowInfo(prev => !prev)}
+            className={`p-2 active:scale-90 transition-transform ${showInfo ? 'text-brand-400' : ''}`}
+            title="Info"
+          >
+            <Info className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => onTrash(media.id)}
+            className="p-2 text-rose-400 active:scale-90 transition-transform"
+            title="Trash"
+          >
+            <Trash2 className="w-5 h-5" />
+          </button>
         </div>
 
         {/* Next Button */}

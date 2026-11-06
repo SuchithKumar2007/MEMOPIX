@@ -147,15 +147,15 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   return (
     <div className="fixed inset-0 z-50 bg-black/95 flex flex-col select-none animate-fade-in">
       {/* Top Bar */}
-      <div className="h-16 px-4 flex items-center justify-between z-20 bg-gradient-to-b from-black/80 to-transparent text-white">
-        <div className="flex items-center gap-3">
+      <div className="h-16 px-3 sm:px-6 flex items-center justify-between z-20 bg-gradient-to-b from-black/85 via-black/50 to-transparent text-white">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 mr-2">
           <button
             onClick={onClose}
-            className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
+            className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-colors flex-shrink-0"
           >
-            <X className="w-6 h-6" />
+            <X className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
-          <div>
+          <div className="min-w-0 flex-1">
             {isRenaming ? (
               <div className="flex items-center gap-2">
                 <input
@@ -177,7 +177,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                     }
                     if (e.key === 'Escape') setIsRenaming(false);
                   }}
-                  className="text-sm font-semibold bg-white/10 text-white rounded-lg px-2 py-0.5 w-48 sm:w-72 outline-none border border-white/40 focus:border-brand-400"
+                  className="text-xs sm:text-sm font-semibold bg-white/10 text-white rounded-lg px-2 py-0.5 w-36 sm:w-72 outline-none border border-white/40 focus:border-brand-400"
                 />
                 <button
                   onClick={() => {
@@ -186,14 +186,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                     }
                     setIsRenaming(false);
                   }}
-                  className="p-1 bg-brand-500 hover:bg-brand-600 text-white rounded-lg transition-colors"
+                  className="p-1 bg-brand-500 hover:bg-brand-600 text-white rounded-lg transition-colors flex-shrink-0"
                 >
                   <Check className="w-3.5 h-3.5" />
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-1.5">
-                <p className="text-sm font-semibold truncate max-w-xs sm:max-w-md">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <p className="text-xs sm:text-sm font-semibold truncate max-w-[130px] xs:max-w-[200px] sm:max-w-md">
                   {media.originalName}
                 </p>
                 {onRename && (
@@ -202,7 +202,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                       setRenameValue(media.originalName);
                       setIsRenaming(true);
                     }}
-                    className="p-1 text-brand-300 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+                    className="p-1 text-brand-300 hover:text-white hover:bg-white/10 rounded-lg transition-all flex-shrink-0"
                     title="Rename video"
                   >
                     <Pencil className="w-3.5 h-3.5" />
@@ -213,7 +213,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
           {onRename && !isRenaming && (
             <button
               onClick={() => {
