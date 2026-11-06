@@ -243,9 +243,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           </button>
 
           <a
-            href={media.downloadUrl}
+            href={resolveMediaUrl(media.downloadUrl || media.streamUrl)}
             download={media.originalName}
             className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
+            title="Download video"
           >
             <Download className="w-5 h-5" />
           </a>

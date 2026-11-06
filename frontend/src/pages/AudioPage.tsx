@@ -17,10 +17,11 @@ import {
   ArrowLeft,
   ListPlus,
   Camera,
-  Upload
+  Upload,
+  Download
 } from 'lucide-react';
 import { MediaItem, Playlist } from '../types';
-import { mediaApi, playlistApi } from '../services/api';
+import { mediaApi, playlistApi, resolveMediaUrl } from '../services/api';
 import { SkeletonLoader } from '../components/SkeletonLoader';
 import { EmptyState } from '../components/EmptyState';
 import { useToast } from '../context/ToastContext';
@@ -634,6 +635,17 @@ export const AudioPage: React.FC<AudioPageProps> = ({
                         <FolderPlus className="w-4 h-4 text-purple-500/80 hover:text-purple-600" />
                       </button>
 
+                      {/* Download Audio Button */}
+                      <a
+                        href={resolveMediaUrl(track.downloadUrl || track.streamUrl)}
+                        download={track.originalName}
+                        onClick={(e) => e.stopPropagation()}
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/30 opacity-70 sm:opacity-0 group-hover:opacity-100 transition-colors flex items-center justify-center"
+                        title="Download song"
+                      >
+                        <Download className="w-4 h-4 text-purple-400 hover:text-purple-300" />
+                      </a>
+
                       {/* Delete Button */}
                       <button
                         onClick={(e) => handleDeleteTrack(e, track)}
@@ -853,6 +865,17 @@ export const AudioPage: React.FC<AudioPageProps> = ({
                       </div>
 
                       <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                        {/* Download Audio Button */}
+                        <a
+                          href={resolveMediaUrl(media.downloadUrl || media.streamUrl)}
+                          download={media.originalName}
+                          onClick={(e) => e.stopPropagation()}
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/30 opacity-70 sm:opacity-0 group-hover:opacity-100 transition-colors flex items-center justify-center"
+                          title="Download song"
+                        >
+                          <Download className="w-4 h-4 text-purple-400 hover:text-purple-300" />
+                        </a>
+
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
