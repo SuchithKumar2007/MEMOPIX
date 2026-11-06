@@ -214,20 +214,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         </div>
 
         <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-          {onRename && !isRenaming && (
-            <button
-              onClick={() => {
-                setRenameValue(media.originalName);
-                setIsRenaming(true);
-              }}
-              title="Rename video"
-              className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-colors flex items-center gap-1.5 text-xs font-semibold"
-            >
-              <Pencil className="w-4 h-4 text-brand-400" />
-              <span className="hidden sm:inline">Rename</span>
-            </button>
-          )}
-
           {onArchive && (
             <button
               onClick={() => onArchive(media.id, !media.isArchived)}

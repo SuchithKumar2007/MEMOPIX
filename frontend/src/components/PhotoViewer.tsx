@@ -305,15 +305,16 @@ export const PhotoViewer: React.FC<PhotoViewerProps> = ({
 
         {/* Right: Actions (Desktop & Mobile) */}
         <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-          {/* Slideshow button */}
+          {/* Slideshow button — visible in portrait mode and desktop */}
           <button
             onClick={() => setIsSlideshow(prev => !prev)}
             title={isSlideshow ? 'Pause Slideshow' : 'Start Slideshow'}
-            className={`p-2 rounded-xl transition-colors hidden sm:flex ${
-              isSlideshow ? 'text-purple-400 bg-purple-500/20' : 'text-white/80 hover:text-white hover:bg-white/10'
+            className={`p-1.5 sm:p-2 rounded-xl transition-all flex items-center gap-1 ${
+              isSlideshow ? 'text-purple-400 bg-purple-500/25 ring-1 ring-purple-400' : 'text-white/80 hover:text-white hover:bg-white/10'
             }`}
           >
-            {isSlideshow ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+            {isSlideshow ? <Pause className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400" /> : <Play className="w-4 h-4 sm:w-5 sm:h-5" />}
+            <span className="text-[11px] font-semibold hidden md:inline">Slideshow</span>
           </button>
 
           <button
@@ -472,6 +473,21 @@ export const PhotoViewer: React.FC<PhotoViewerProps> = ({
           />
         </div>
 
+        {/* Floating Slideshow Active Badge */}
+        {isSlideshow && (
+          <div className="absolute top-20 left-1/2 -translate-x-1/2 z-30 px-4 py-1.5 bg-purple-600/90 text-white text-xs font-bold rounded-full shadow-2xl backdrop-blur-md flex items-center gap-2 border border-purple-400/40 animate-pulse">
+            <Play className="w-3.5 h-3.5 fill-white" />
+            <span>Slideshow Running (3.5s)</span>
+            <button
+              onClick={() => setIsSlideshow(false)}
+              className="ml-1 p-0.5 rounded-full hover:bg-white/20 text-white transition-colors"
+              title="Stop Slideshow"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
         {/* Floating Reset Zoom Badge (appears when zoomed in) */}
         {zoom > 1 && (
           <button
@@ -485,7 +501,14 @@ export const PhotoViewer: React.FC<PhotoViewerProps> = ({
         )}
 
         {/* Mobile Portrait Action Bar (Floats at bottom of screen on phones, ensuring all buttons are visible) */}
-        <div className="sm:hidden fixed bottom-5 left-4 right-4 z-30 bg-black/85 backdrop-blur-xl border border-white/15 rounded-2xl p-2 px-3 flex items-center justify-around shadow-2xl animate-slide-up text-white/85">
+        <div className="sm:hidden fixed bottom-5 left-3 right-3 z-30 bg-black/85 backdrop-blur-xl border border-white/15 rounded-2xl p-1.5 px-2 flex items-center justify-around shadow-2xl animate-slide-up text-white/85">
+          <button
+            onClick={() => setIsSlideshow(prev => !prev)}
+            className={`p-2 active:scale-90 transition-transform ${isSlideshow ? 'text-purple-400 bg-purple-500/25 rounded-xl ring-1 ring-purple-400' : ''}`}
+            title={isSlideshow ? 'Pause Slideshow' : 'Start Slideshow'}
+          >
+            {isSlideshow ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+          </button>
           <button
             onClick={handleZoomOut}
             disabled={zoom <= 0.5}

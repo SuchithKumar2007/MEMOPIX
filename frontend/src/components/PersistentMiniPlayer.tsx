@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Play,
   Pause,
@@ -14,9 +14,9 @@ import {
   X,
   Music,
   Disc3,
-  Heart,
   Loader2,
-  Trash2
+  Trash2,
+  FileText
 } from 'lucide-react';
 import { useMusicPlayer } from '../context/MusicPlayerContext';
 import { useToast } from '../context/ToastContext';
@@ -24,6 +24,7 @@ import { mediaApi } from '../services/api';
 import { formatDuration } from '../utils/formatters';
 
 export const PersistentMiniPlayer: React.FC = () => {
+  const [showLyrics, setShowLyrics] = useState(false);
   const {
     currentTrack,
     isPlaying,
@@ -239,9 +240,13 @@ export const PersistentMiniPlayer: React.FC = () => {
 
       {/* ── 2. FULLSCREEN EXPANDED VINYL PLAYER ────────────────────────────── */}
       {isExpanded && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xl flex flex-col justify-between p-4 sm:p-8 animate-fade-in text-white">
+        <div className="fixed inset-0 z-50 bg-gradient-to-b from-[#0a0010] via-[#1a0530] to-black flex flex-col justify-between p-4 sm:p-8 animate-fade-in text-white overflow-hidden">
+          {/* Atmospheric background blobs */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full bg-purple-900/30 blur-3xl pointer-events-none" />
+          <div className="absolute bottom-1/3 left-1/4 w-64 h-64 rounded-full bg-indigo-900/20 blur-3xl pointer-events-none" />
+
           {/* Header */}
-          <div className="flex items-center justify-between max-w-xl w-full mx-auto">
+          <div className="flex items-center justify-between max-w-xl w-full mx-auto relative z-10">
             <button
               onClick={() => setIsExpanded(false)}
               className="p-2 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 transition-all text-white"
@@ -267,7 +272,17 @@ export const PersistentMiniPlayer: React.FC = () => {
               </button>
 
               <button
-                onClick={() => setShowQueue(!showQueue)}
+                onClick={() => { setShowLyrics(!showLyrics); setShowQueue(false); }}
+                className={`p-2 rounded-full transition-all ${
+                  showLyrics ? 'bg-purple-600 text-white' : 'bg-white/10 hover:bg-white/20 text-white'
+                }`}
+                title="Lyrics"
+              >
+                <FileText className="w-5 h-5" />
+              </button>
+
+              <button
+                onClick={() => { setShowQueue(!showQueue); setShowLyrics(false); }}
                 className={`p-2 rounded-full transition-all ${
                   showQueue ? 'bg-purple-600 text-white' : 'bg-white/10 hover:bg-white/20 text-white'
                 }`}
@@ -278,8 +293,8 @@ export const PersistentMiniPlayer: React.FC = () => {
             </div>
           </div>
 
-          {/* Main Body: Vinyl Disc / Artwork OR Queue */}
-          <div className="flex-1 flex items-center justify-center py-6 max-w-xl w-full mx-auto">
+          {/* Main Body: Vinyl Disc / Artwork OR Queue OR Lyrics */}
+          <div className="flex-1 flex items-center justify-center py-4 max-w-xl w-full mx-auto relative z-10">
             {showQueue ? (
               <div className="w-full h-80 sm:h-96 bg-white/5 border border-white/10 rounded-3xl p-4 overflow-y-auto">
                 <div className="flex items-center justify-between mb-3 px-2">
@@ -319,36 +334,62 @@ export const PersistentMiniPlayer: React.FC = () => {
                   ))}
                 </div>
               </div>
+            ) : showLyrics ? (
+              /* ── LYRICS SHEET ── */
+              <div className="w-full h-80 sm:h-96 flex flex-col items-center">
+                <div className="w-full flex-1 bg-white/5 border border-purple-500/20 rounded-3xl p-6 overflow-y-auto flex flex-col items-center justify-center shadow-[0_0_40px_rgba(139,92,246,0.15)]">
+                  <Music className="w-10 h-10 text-purple-400/60 mb-4" />
+                  <h3 className="text-base font-bold text-white mb-1 text-center">{cleanTitle}</h3>
+                  <p className="text-xs text-purple-400 mb-6 text-center">5 TB Cloud · Private Audio Library</p>
+                  <div className="text-center space-y-3 text-gray-400 text-sm leading-relaxed">
+                    <p className="text-purple-300/50 italic text-xs tracking-widest uppercase mb-4">♪ Lyrics</p>
+                    <p className="text-gray-500 text-sm">No lyrics available for this track.</p>
+                    <p className="text-gray-600 text-xs mt-2">Upload a <span className="text-purple-400 font-mono">.lrc</span> or <span className="text-purple-400 font-mono">.txt</span> lyrics file<br />with the same filename to enable lyrics.</p>
+                  </div>
+                </div>
+              </div>
             ) : (
+              /* ── VINYL DISC ── */
               <div className="flex flex-col items-center">
-                {/* Vinyl Disc with Aura */}
+                {/* Vinyl Disc with enhanced aura */}
                 <div className="relative group">
-                  <div className={`w-56 h-56 sm:w-72 sm:h-72 rounded-full bg-gradient-to-tr from-purple-700 via-indigo-900 to-black p-3 shadow-2xl border-4 border-white/10 flex items-center justify-center ${
+                  {/* Outer ambient glow layers */}
+                  <div className={`absolute -inset-12 rounded-full bg-purple-900/25 blur-3xl -z-10 ${isPlaying ? 'animate-pulse' : ''}`} />
+                  <div className={`absolute -inset-6 rounded-full bg-purple-600/20 blur-2xl -z-10 ${isPlaying ? 'animate-pulse' : ''}`} />
+
+                  {/* Main vinyl disc */}
+                  <div className={`w-64 h-64 sm:w-80 sm:h-80 rounded-full bg-gradient-to-br from-[#1a0a2e] via-[#2d1050] to-[#0d0318] shadow-2xl border border-purple-800/30 flex items-center justify-center ${
                     isPlaying ? 'animate-spin-slow' : ''
                   }`}>
-                    {/* Concentric vinyl grooves */}
-                    <div className="w-full h-full rounded-full border border-white/5 flex items-center justify-center p-6">
-                      <div className="w-full h-full rounded-full border border-white/5 flex items-center justify-center p-6">
-                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg border-2 border-white/20">
-                          <Music className="w-8 h-8 text-white" />
+                    {/* Groove ring 1 — outermost */}
+                    <div className="w-[90%] h-[90%] rounded-full border border-purple-700/25 flex items-center justify-center">
+                      {/* Groove ring 2 */}
+                      <div className="w-[88%] h-[88%] rounded-full border border-purple-600/20 flex items-center justify-center">
+                        {/* Groove ring 3 */}
+                        <div className="w-[86%] h-[86%] rounded-full border border-purple-500/18 flex items-center justify-center">
+                          {/* Groove ring 4 */}
+                          <div className="w-[84%] h-[84%] rounded-full border border-purple-400/15 flex items-center justify-center">
+                            {/* Groove ring 5 */}
+                            <div className="w-[82%] h-[82%] rounded-full border border-indigo-500/12 flex items-center justify-center">
+                              {/* Center label circle */}
+                              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gradient-to-br from-purple-400 via-purple-600 to-indigo-700 flex items-center justify-center shadow-[0_0_40px_rgba(139,92,246,0.8)] border-2 border-purple-300/30">
+                                <Music className="w-10 h-10 sm:w-12 sm:h-12 text-white drop-shadow-lg" />
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
-
-                  {/* Pulsing Aura */}
-                  <div className={`absolute -inset-4 rounded-full bg-purple-500/20 filter blur-xl -z-10 ${
-                    isPlaying ? 'animate-pulse' : ''
-                  }`} />
                 </div>
 
                 {/* Track Title */}
                 <div className="mt-8 text-center max-w-md px-4">
-                  <h2 className="text-lg sm:text-xl font-bold tracking-tight text-white line-clamp-1">
+                  <h2 className="text-lg sm:text-2xl font-bold tracking-tight text-white line-clamp-1">
                     {cleanTitle}
                   </h2>
-                  <p className="text-xs sm:text-sm text-purple-300 mt-1">
-                    5 TB Cloud Storage
+                  <p className="text-xs sm:text-sm text-purple-400 mt-1 font-medium tracking-wide">
+                    5 TB Cloud · Private Audio Library
                   </p>
                 </div>
               </div>
