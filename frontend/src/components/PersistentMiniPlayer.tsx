@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Play,
   Pause,
@@ -16,17 +16,56 @@ import {
   Disc3,
   Loader2,
   Trash2,
-  FileText
+  FileText,
+  Headphones
 } from 'lucide-react';
 import { useMusicPlayer } from '../context/MusicPlayerContext';
 import { useToast } from '../context/ToastContext';
 import { mediaApi } from '../services/api';
 import { formatDuration } from '../utils/formatters';
+
+interface SyncedLyricLine {
+  time: number;
+  text: string;
+}
+
+function parseLrcLyrics(lrc: string): SyncedLyricLine[] {
+  const lines = lrc.split('\n');
+  const result: SyncedLyricLine[] = [];
+  const timeRegex = /\[(\d{1,2}):(\d{2})(?:\.(\d+))?\]/g;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    const matches = [...trimmed.matchAll(timeRegex)];
+    if (matches.length > 0) {
+      const text = trimmed.replace(timeRegex, '').trim();
+      for (const m of matches) {
+        const min = parseInt(m[1], 10);
+        const sec = parseInt(m[2], 10);
+        const msStr = m[3] || '0';
+        const ms = parseFloat('0.' + msStr);
+        const total = min * 60 + sec + ms;
+        result.push({ time: total, text: text || '♪ ♪ ♪' });
+      }
+    }
+  }
+
+  result.sort((a, b) => a.time - b.time);
+  return result;
+}
+
 export const PersistentMiniPlayer: React.FC = () => {
   const [showLyrics, setShowLyrics] = useState(false);
   const [lyricsText, setLyricsText] = useState<string | null>(null);
-  const [lyricsSource, setLyricsSource] = useState<'id3' | 'lrc' | 'txt' | null>(null);
+  const [syncedLines, setSyncedLines] = useState<SyncedLyricLine[]>([]);
+  const [isInstrumental, setIsInstrumental] = useState(false);
+  const [matchedArtist, setMatchedArtist] = useState<string | null>(null);
+  const [lyricsSource, setLyricsSource] = useState<'id3' | 'lrc' | 'txt' | 'lrclib' | null>(null);
   const [lyricsLoading, setLyricsLoading] = useState(false);
+
+  const lyricsContainerRef = useRef<HTMLDivElement | null>(null);
+  const activeLineRef = useRef<HTMLDivElement | null>(null);
   const {
     currentTrack,
     isPlaying,
@@ -60,31 +99,79 @@ export const PersistentMiniPlayer: React.FC = () => {
 
   const { success, error } = useToast();
 
-  // Auto-fetch lyrics whenever the lyrics sheet is opened or the track changes
+  // Auto-fetch synchronized lyrics whenever the lyrics sheet is opened or the track changes
   useEffect(() => {
     if (!showLyrics || !currentTrack) return;
     let cancelled = false;
     setLyricsLoading(true);
     setLyricsText(null);
+    setSyncedLines([]);
+    setIsInstrumental(false);
     setLyricsSource(null);
-    mediaApi.getLyrics(currentTrack.id)
+    setMatchedArtist(null);
+
+    mediaApi.getLyrics(currentTrack.id, currentTrack.originalName)
       .then(result => {
         if (!cancelled) {
-          setLyricsText(result.lyrics);
+          setIsInstrumental(!!result.isInstrumental);
           setLyricsSource(result.source);
+          setMatchedArtist(result.artistName || null);
+
+          if (result.syncedLyrics) {
+            const parsed = parseLrcLyrics(result.syncedLyrics);
+            setSyncedLines(parsed);
+            setLyricsText(result.syncedLyrics);
+          } else if (result.lyrics) {
+            const parsed = parseLrcLyrics(result.lyrics);
+            if (parsed.length > 0) {
+              setSyncedLines(parsed);
+            }
+            setLyricsText(result.lyrics);
+          } else {
+            setLyricsText(null);
+            setSyncedLines([]);
+          }
         }
       })
       .catch(() => {
         if (!cancelled) {
           setLyricsText(null);
+          setSyncedLines([]);
+          setIsInstrumental(false);
           setLyricsSource(null);
+          setMatchedArtist(null);
         }
       })
       .finally(() => {
         if (!cancelled) setLyricsLoading(false);
       });
     return () => { cancelled = true; };
-  }, [showLyrics, currentTrack?.id]);
+  }, [showLyrics, currentTrack?.id, currentTrack?.originalName]);
+
+  // Compute active lyric line based on current audio playback time
+  const activeLineIndex = useMemo(() => {
+    if (syncedLines.length === 0) return -1;
+    let active = -1;
+    for (let i = 0; i < syncedLines.length; i++) {
+      // 200ms anticipation leads the visual highlight smoothly as singing begins
+      if (currentTime >= syncedLines[i].time - 0.2) {
+        active = i;
+      } else {
+        break;
+      }
+    }
+    return active;
+  }, [currentTime, syncedLines]);
+
+  // Smooth auto-scroll following the highlighted line as song plays
+  useEffect(() => {
+    if (activeLineIndex >= 0 && activeLineRef.current) {
+      activeLineRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      });
+    }
+  }, [activeLineIndex]);
 
   const handleDeleteCurrentTrack = async () => {
     if (!currentTrack) return;
@@ -363,34 +450,121 @@ export const PersistentMiniPlayer: React.FC = () => {
                 </div>
               </div>
             ) : showLyrics ? (
-              /* ── LYRICS SHEET ── */
+              /* ── SYNCHRONIZED TIME-FLOW LYRICS SHEET ── */
               <div className="w-full h-80 sm:h-96 flex flex-col items-center">
-                <div className="w-full flex-1 bg-white/5 border border-purple-500/20 rounded-3xl p-6 overflow-y-auto flex flex-col items-center shadow-[0_0_40px_rgba(139,92,246,0.15)]">
-                  <Music className="w-10 h-10 text-purple-400/60 mb-4" />
-                  <h3 className="text-base font-bold text-white mb-1 text-center">{cleanTitle}</h3>
-                  <p className="text-xs text-purple-400 mb-6 text-center">5 TB Cloud · Private Audio Library</p>
-                  <p className="text-purple-300/50 italic text-xs tracking-widest uppercase mb-4">♪ Lyrics</p>
-
-                  {lyricsLoading ? (
-                    <div className="flex flex-col items-center gap-3 mt-4">
-                      <Loader2 className="w-6 h-6 text-purple-400 animate-spin" />
-                      <p className="text-gray-400 text-xs">Detecting lyrics...</p>
-                    </div>
-                  ) : lyricsText ? (
-                    <div className="w-full text-center">
-                      {lyricsSource && (
-                        <span className="inline-block text-[10px] font-bold tracking-widest uppercase text-purple-500 bg-purple-500/10 border border-purple-500/20 rounded-full px-3 py-0.5 mb-4">
-                          {lyricsSource === 'id3' ? '🎵 Embedded ID3 Tag' : lyricsSource === 'lrc' ? '📄 .lrc File' : '📄 .txt File'}
+                <div
+                  ref={lyricsContainerRef}
+                  className="w-full flex-1 bg-black/40 backdrop-blur-md border border-purple-500/20 rounded-3xl p-4 sm:p-6 overflow-y-auto relative shadow-[0_0_50px_rgba(139,92,246,0.18)] scroll-smooth"
+                >
+                  {/* Floating Header Info */}
+                  <div className="sticky top-0 z-20 bg-gradient-to-b from-[#0a0010] via-[#0a0010]/95 to-transparent pb-3 pt-1 -mt-2 -mx-2 px-2 flex flex-col items-center border-b border-purple-500/10 mb-4 backdrop-blur-sm">
+                    <h3 className="text-sm sm:text-base font-bold text-white truncate max-w-full text-center">
+                      {cleanTitle}
+                    </h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      {isInstrumental ? (
+                        <span className="text-[10px] font-bold tracking-widest uppercase text-amber-300 bg-amber-500/15 border border-amber-500/30 rounded-full px-2.5 py-0.5">
+                          🎹 Instrumental / Pure Music
+                        </span>
+                      ) : syncedLines.length > 0 ? (
+                        <span className="text-[10px] font-bold tracking-widest uppercase text-purple-300 bg-purple-500/15 border border-purple-500/30 rounded-full px-2.5 py-0.5 flex items-center gap-1 shadow-sm shadow-purple-500/20">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block mr-0.5" />
+                          Live Synced Lyrics
+                        </span>
+                      ) : lyricsText ? (
+                        <span className="text-[10px] font-bold tracking-widest uppercase text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 rounded-full px-2.5 py-0.5">
+                          📄 Lyrics Sheet
+                        </span>
+                      ) : null}
+                      {matchedArtist && (
+                        <span className="text-[10px] text-gray-400 truncate max-w-[150px]">
+                          by {matchedArtist}
                         </span>
                       )}
-                      <pre className="text-gray-200 text-sm leading-7 whitespace-pre-wrap font-sans text-center">
+                    </div>
+                  </div>
+
+                  {/* Body Content */}
+                  {lyricsLoading ? (
+                    <div className="flex flex-col items-center justify-center py-16 gap-3">
+                      <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
+                      <p className="text-gray-300 text-xs font-medium tracking-wide">Syncing lyrics with song...</p>
+                    </div>
+                  ) : isInstrumental ? (
+                    /* ── INSTRUMENTAL / BACKGROUND SCORE VIEW ── */
+                    <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+                      <div className="w-16 h-16 rounded-full bg-purple-500/15 border border-purple-500/30 flex items-center justify-center mb-4 shadow-[0_0_24px_rgba(168,85,247,0.3)]">
+                        <Headphones className="w-8 h-8 text-purple-300" />
+                      </div>
+                      <h4 className="text-base sm:text-lg font-bold text-white mb-2">
+                        Instrumental & Background Score
+                      </h4>
+                      <p className="text-xs text-purple-300/80 max-w-sm leading-relaxed">
+                        This piece is a musical composition with no vocal lyrics. Enjoy the background soundtrack in high-fidelity 5 TB Cloud Audio!
+                      </p>
+                      {/* Animated audio wave bars */}
+                      <div className="flex items-end gap-1.5 h-10 mt-6">
+                        {[40, 75, 55, 90, 60, 80, 45, 95, 70, 50, 85, 65].map((h, i) => (
+                          <span
+                            key={i}
+                            className={`w-1 bg-gradient-to-t from-purple-500 to-indigo-400 rounded-full transition-all duration-300 ${
+                              isPlaying ? 'animate-pulse' : 'opacity-40'
+                            }`}
+                            style={{
+                              height: isPlaying ? `${h}%` : '20%',
+                              animationDelay: `${(i % 5) * 150}ms`
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ) : syncedLines.length > 0 ? (
+                    /* ── LIVE SYNCED LINE-BY-LINE HIGHLIGHTED KARAOKE ── */
+                    <div className="py-12 space-y-5 text-center">
+                      {syncedLines.map((line, idx) => {
+                        const isActive = idx === activeLineIndex;
+                        const isPast = activeLineIndex >= 0 && idx < activeLineIndex;
+
+                        return (
+                          <div
+                            key={`${line.time}_${idx}`}
+                            ref={isActive ? activeLineRef : null}
+                            onClick={() => seekTo(line.time)}
+                            title="Click to jump to this lyric"
+                            className={`cursor-pointer transition-all duration-300 px-4 py-2 rounded-2xl select-none ${
+                              isActive
+                                ? 'text-white font-extrabold text-xl sm:text-2xl scale-[1.06] drop-shadow-[0_0_22px_rgba(168,85,247,0.95)] bg-purple-500/20 border border-purple-400/40 shadow-lg shadow-purple-500/20'
+                                : isPast
+                                ? 'text-white/40 hover:text-white/80 text-sm sm:text-base font-medium'
+                                : 'text-white/30 hover:text-white/80 text-sm sm:text-base font-medium'
+                            }`}
+                          >
+                            <p className={`leading-relaxed ${
+                              isActive
+                                ? 'bg-gradient-to-r from-purple-100 via-white to-purple-200 bg-clip-text text-transparent'
+                                : ''
+                            }`}>
+                              {line.text}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : lyricsText ? (
+                    /* ── PLAIN LYRICS FALLBACK ── */
+                    <div className="w-full text-center py-6">
+                      <pre className="text-gray-200 text-sm sm:text-base leading-8 whitespace-pre-wrap font-sans text-center">
                         {lyricsText}
                       </pre>
                     </div>
                   ) : (
-                    <div className="text-center space-y-3 mt-2">
-                      <p className="text-gray-500 text-sm">No lyrics found for this track.</p>
-                      <p className="text-gray-600 text-xs">Embed lyrics in the MP3 ID3 tag, or upload a<br /><span className="text-purple-400 font-mono">.lrc</span> / <span className="text-purple-400 font-mono">.txt</span> file with the same filename.</p>
+                    /* ── NO LYRICS FOUND ── */
+                    <div className="text-center space-y-3 py-12">
+                      <Music className="w-10 h-10 text-purple-400/40 mx-auto" />
+                      <p className="text-gray-300 text-sm font-medium">No synchronized lyrics found for this track.</p>
+                      <p className="text-gray-500 text-xs max-w-xs mx-auto">
+                        You can upload a matching <span className="text-purple-400 font-mono">.lrc</span> file or embed ID3 lyrics to enable line sync.
+                      </p>
                     </div>
                   )}
                 </div>

@@ -469,9 +469,10 @@ export class MediaController {
   /**
    * GET /api/media/:id/lyrics
    * Auto-detects lyrics from the audio file:
-   * 1. Reads USLT (unsynchronised lyrics) ID3 tag embedded in the MP3/audio file
-   * 2. Falls back to a sidecar .lrc or .txt file with the same base name
-   * Returns: { lyrics: string | null, source: 'id3' | 'lrc' | 'txt' | null }
+   * 1. Reads USLT (unsynchronised lyrics) / SYLT ID3 tag embedded in the MP3/audio file
+   * 2. Reads sidecar .lrc or .txt file with the same base name
+   * 3. Queries LRCLIB for synchronized line-by-line timestamped lyrics ([mm:ss.xx])
+   * 4. Auto-detects instrumental / background score tracks (no lyrics needed)
    */
   static async getLyrics(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
@@ -497,6 +498,8 @@ export class MediaController {
       }
 
       const absPath = StorageService.getAbsolutePath(media.storagePath);
+      let localLyrics: string | null = null;
+      let localSource: 'id3' | 'lrc' | 'txt' | null = null;
 
       // Helper: extract lyrics from music-metadata result
       const extractFromMeta = (mm: musicMetadata.IAudioMetadata): string | null => {
@@ -522,35 +525,156 @@ export class MediaController {
           const mm = await musicMetadata.parseFile(absPath, { duration: false, skipCovers: true });
           const found = extractFromMeta(mm);
           if (found) {
-            res.status(200).json({ success: true, lyrics: found, source: 'id3' });
-            return;
+            localLyrics = found;
+            localSource = 'id3';
           }
         } catch {}
 
-        // 2. Sidecar .lrc
-        const dir = path.dirname(absPath);
-        const base = path.basename(absPath, path.extname(absPath));
-        const lrcPath = path.join(dir, `${base}.lrc`);
-        const txtPath = path.join(dir, `${base}.txt`);
+        // 2. Sidecar .lrc or .txt
+        if (!localLyrics) {
+          const dir = path.dirname(absPath);
+          const base = path.basename(absPath, path.extname(absPath));
+          const lrcPath = path.join(dir, `${base}.lrc`);
+          const txtPath = path.join(dir, `${base}.txt`);
 
-        if (fs.existsSync(lrcPath)) {
-          const content = await fs.promises.readFile(lrcPath, 'utf-8');
-          if (content.trim()) { res.status(200).json({ success: true, lyrics: content.trim(), source: 'lrc' }); return; }
-        }
-        if (fs.existsSync(txtPath)) {
-          const content = await fs.promises.readFile(txtPath, 'utf-8');
-          if (content.trim()) { res.status(200).json({ success: true, lyrics: content.trim(), source: 'txt' }); return; }
+          if (fs.existsSync(lrcPath)) {
+            const content = await fs.promises.readFile(lrcPath, 'utf-8');
+            if (content.trim()) { localLyrics = content.trim(); localSource = 'lrc'; }
+          } else if (fs.existsSync(txtPath)) {
+            const content = await fs.promises.readFile(txtPath, 'utf-8');
+            if (content.trim()) { localLyrics = content.trim(); localSource = 'txt'; }
+          }
         }
       } else if (media.fileData) {
         // 3. File stored in DB buffer
         try {
           const mm = await musicMetadata.parseBuffer(Buffer.from(media.fileData), media.mimeType, { skipCovers: true });
           const found = extractFromMeta(mm);
-          if (found) { res.status(200).json({ success: true, lyrics: found, source: 'id3' }); return; }
+          if (found) { localLyrics = found; localSource = 'id3'; }
         } catch {}
       }
 
-      res.status(200).json({ success: true, lyrics: null, source: null });
+      // If local lyrics have timestamp tags [mm:ss.xx], we already have synced lyrics!
+      const isLocalSynced = localLyrics ? /\[\d{1,2}:\d{2}(?:\.\d+)?\]/.test(localLyrics) : false;
+      if (localLyrics && isLocalSynced) {
+        res.status(200).json({
+          success: true,
+          lyrics: localLyrics,
+          syncedLyrics: localLyrics,
+          isInstrumental: false,
+          source: localSource
+        });
+        return;
+      }
+
+      // Clean track title for query
+      const cleanTitle = media.originalName
+        .replace(/\.[a-zA-Z0-9]+$/, '')
+        .replace(/\[[^\]]+\]/g, '')
+        .replace(/\((?:official|audio|video|lyric|lyrics|remix|hd|4k)[^)]*\)/gi, '')
+        .trim();
+
+      const isTitleInstrumental = /\b(instrumental|bgm|theme|background score|score|karaoke)\b/i.test(cleanTitle);
+
+      // Query LRCLIB for synchronized lyrics
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 6000);
+        const searchUrl = `https://lrclib.net/api/search?q=${encodeURIComponent(cleanTitle)}`;
+        const lrclibRes = await fetch(searchUrl, {
+          signal: controller.signal,
+          headers: {
+            'User-Agent': 'MemopixCloud/1.0 (https://github.com/SuchithKumar2007/MEMOPIX)'
+          }
+        });
+        clearTimeout(timeout);
+
+        if (lrclibRes.ok) {
+          const data: any = await lrclibRes.json();
+          if (Array.isArray(data) && data.length > 0) {
+            // Check for syncedLyrics match
+            const syncedMatch = data.find((item: any) => item.syncedLyrics && item.syncedLyrics.trim().length > 0);
+            if (syncedMatch) {
+              res.status(200).json({
+                success: true,
+                lyrics: syncedMatch.syncedLyrics,
+                syncedLyrics: syncedMatch.syncedLyrics,
+                plainLyrics: syncedMatch.plainLyrics || null,
+                isInstrumental: false,
+                source: 'lrclib',
+                trackName: syncedMatch.trackName || cleanTitle,
+                artistName: syncedMatch.artistName || null
+              });
+              return;
+            }
+
+            // Check if track is an instrumental
+            const instMatch = data.find((item: any) => item.instrumental === true);
+            if (instMatch || isTitleInstrumental) {
+              res.status(200).json({
+                success: true,
+                lyrics: null,
+                syncedLyrics: null,
+                isInstrumental: true,
+                source: 'lrclib',
+                trackName: instMatch?.trackName || cleanTitle,
+                artistName: instMatch?.artistName || null
+              });
+              return;
+            }
+
+            // Check plain lyrics
+            const plainMatch = data.find((item: any) => item.plainLyrics && item.plainLyrics.trim().length > 0);
+            if (plainMatch) {
+              res.status(200).json({
+                success: true,
+                lyrics: plainMatch.plainLyrics,
+                syncedLyrics: null,
+                plainLyrics: plainMatch.plainLyrics,
+                isInstrumental: false,
+                source: 'lrclib',
+                trackName: plainMatch.trackName || cleanTitle,
+                artistName: plainMatch.artistName || null
+              });
+              return;
+            }
+          }
+        }
+      } catch (lrclibErr) {
+        console.warn('[lyrics] LRCLIB online lookup warning:', lrclibErr);
+      }
+
+      // If title is obviously instrumental, flag as instrumental
+      if (isTitleInstrumental) {
+        res.status(200).json({
+          success: true,
+          lyrics: null,
+          syncedLyrics: null,
+          isInstrumental: true,
+          source: null
+        });
+        return;
+      }
+
+      // If local plain lyrics were found, return them
+      if (localLyrics) {
+        res.status(200).json({
+          success: true,
+          lyrics: localLyrics,
+          syncedLyrics: null,
+          isInstrumental: false,
+          source: localSource
+        });
+        return;
+      }
+
+      res.status(200).json({
+        success: true,
+        lyrics: null,
+        syncedLyrics: null,
+        isInstrumental: false,
+        source: null
+      });
     } catch (error) {
       next(error);
     }

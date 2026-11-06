@@ -291,9 +291,97 @@ export const mediaApi = {
     return api.post('/media/bulk-download', { mediaIds }, { responseType: 'blob' });
   },
 
-  getLyrics: async (id: string): Promise<{ lyrics: string | null; source: 'id3' | 'lrc' | 'txt' | null }> => {
-    const res = await api.get(`/media/${id}/lyrics`);
-    return res.data?.success ? { lyrics: res.data.lyrics, source: res.data.source } : { lyrics: null, source: null };
+  getLyrics: async (
+    id: string,
+    trackTitle?: string
+  ): Promise<{
+    lyrics: string | null;
+    syncedLyrics?: string | null;
+    plainLyrics?: string | null;
+    isInstrumental?: boolean;
+    source: 'id3' | 'lrc' | 'txt' | 'lrclib' | null;
+    trackName?: string | null;
+    artistName?: string | null;
+  }> => {
+    // 1. Try backend endpoint first
+    try {
+      const res = await api.get(`/media/${id}/lyrics`);
+      if (res.data?.success) {
+        return {
+          lyrics: res.data.lyrics ?? null,
+          syncedLyrics: res.data.syncedLyrics ?? (res.data.lyrics && /\[\d{1,2}:\d{2}/.test(res.data.lyrics) ? res.data.lyrics : null),
+          plainLyrics: res.data.plainLyrics ?? null,
+          isInstrumental: !!res.data.isInstrumental,
+          source: res.data.source ?? null,
+          trackName: res.data.trackName,
+          artistName: res.data.artistName
+        };
+      }
+    } catch (err) {
+      console.warn('[lyrics] Backend lyrics call failed, attempting direct online fetch:', err);
+    }
+
+    // 2. Direct browser fallback to LRCLIB (CORS-friendly public lyrics database)
+    if (trackTitle) {
+      try {
+        const clean = trackTitle
+          .replace(/\.[a-zA-Z0-9]+$/, '')
+          .replace(/\[[^\]]+\]/g, '')
+          .replace(/\((?:official|audio|video|lyric|lyrics|remix|hd|4k)[^)]*\)/gi, '')
+          .trim();
+
+        const isInstrumental = /\b(instrumental|bgm|theme|background score|score|karaoke)\b/i.test(clean);
+
+        const lrcRes = await fetch(`https://lrclib.net/api/search?q=${encodeURIComponent(clean)}`, {
+          headers: { 'Accept': 'application/json' }
+        });
+        if (lrcRes.ok) {
+          const list: any = await lrcRes.json();
+          if (Array.isArray(list) && list.length > 0) {
+            const synced = list.find((it: any) => it.syncedLyrics && it.syncedLyrics.trim().length > 0);
+            if (synced) {
+              return {
+                lyrics: synced.syncedLyrics,
+                syncedLyrics: synced.syncedLyrics,
+                plainLyrics: synced.plainLyrics || null,
+                isInstrumental: false,
+                source: 'lrclib',
+                trackName: synced.trackName || clean,
+                artistName: synced.artistName || null
+              };
+            }
+            const inst = list.find((it: any) => it.instrumental === true);
+            if (inst || isInstrumental) {
+              return {
+                lyrics: null,
+                syncedLyrics: null,
+                isInstrumental: true,
+                source: 'lrclib',
+                trackName: inst?.trackName || clean,
+                artistName: inst?.artistName || null
+              };
+            }
+            const plain = list.find((it: any) => it.plainLyrics && it.plainLyrics.trim().length > 0);
+            if (plain) {
+              return {
+                lyrics: plain.plainLyrics,
+                syncedLyrics: null,
+                plainLyrics: plain.plainLyrics,
+                isInstrumental: false,
+                source: 'lrclib',
+                trackName: plain.trackName || clean,
+                artistName: plain.artistName || null
+              };
+            }
+          }
+        }
+        if (isInstrumental) {
+          return { lyrics: null, syncedLyrics: null, isInstrumental: true, source: null };
+        }
+      } catch {}
+    }
+
+    return { lyrics: null, syncedLyrics: null, isInstrumental: false, source: null };
   }
 };
 
