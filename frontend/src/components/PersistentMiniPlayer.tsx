@@ -245,10 +245,10 @@ export const PersistentMiniPlayer: React.FC = () => {
             className="flex items-center gap-3 min-w-0 cursor-pointer flex-1 max-w-[200px] sm:max-w-[260px]"
             onClick={() => setIsExpanded(true)}
           >
-            <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-md ${
-              isPlaying ? 'animate-spin-slow' : ''
+            <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 shadow-lg shadow-purple-500/30 border border-purple-500/40 ${
+              isPlaying ? 'animate-spin-slow' : 'animation-paused'
             }`}>
-              <Disc3 className="w-5 h-5 text-white" />
+              <img src="/turntable-disc-clean.png" alt="Vinyl Disc" className="w-full h-full object-cover" />
             </div>
 
             <div className="min-w-0 flex-1">
@@ -682,179 +682,57 @@ export const PersistentMiniPlayer: React.FC = () => {
                 </div>
               </div>
             ) : (
-              /* ── CYBER NEON ROTATING GRAMOPHONE TURNTABLE (Matching Reference Design) ── */
+              /* ── CYBER NEON TURNTABLE ROTATOR (Direct High-Definition Art + Rotating Vinyl) ── */
               <div className="flex flex-col items-center justify-center w-full">
                 {/* Cyber Turntable Plinth Deck */}
                 <div
-                  className="relative p-5 sm:p-7 rounded-[38px] bg-gradient-to-br from-[#120726]/95 via-[#080214]/95 to-[#030108]/95 border border-cyan-500/25 shadow-[0_25px_80px_rgba(0,0,0,0.9),0_0_80px_rgba(6,182,212,0.2),0_0_100px_rgba(168,85,247,0.25)] max-w-[340px] xs:max-w-sm sm:max-w-md w-full flex flex-col items-center justify-center cursor-pointer select-none group overflow-hidden"
+                  className="relative max-w-[320px] xs:max-w-[360px] sm:max-w-[400px] w-full aspect-square flex items-center justify-center cursor-pointer select-none group"
                   onClick={togglePlay}
                   title={isPlaying ? 'Click turntable to pause' : 'Click turntable to start'}
                 >
-                  {/* Outer Ambient Cyber Cyan & Purple Cosmic Glow */}
-                  <div className={`absolute -inset-10 rounded-[44px] bg-gradient-to-r from-purple-600/20 via-pink-600/10 to-cyan-500/20 blur-3xl -z-10 transition-opacity duration-700 ${isPlaying ? 'animate-pulse' : 'opacity-25'}`} />
+                  {/* Outer Ambient Cyber Glow Atmosphere */}
+                  <div className={`absolute -inset-6 rounded-[48px] bg-gradient-to-tr from-purple-600/30 via-pink-600/20 to-cyan-500/30 blur-3xl -z-10 transition-opacity duration-700 ${isPlaying ? 'animate-pulse' : 'opacity-25'}`} />
 
-                  {/* ── NEON SWIRL ENERGY TRAILS (Matching Reference Photo) ── */}
-                  <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible z-0" viewBox="0 0 400 340">
-                    <defs>
-                      <linearGradient id="cyberRibbonPurple" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#ec4899" stopOpacity="0.95" />
-                        <stop offset="50%" stopColor="#a855f7" stopOpacity="0.85" />
-                        <stop offset="100%" stopColor="#6366f1" stopOpacity="0" />
-                      </linearGradient>
-                      <linearGradient id="cyberRibbonCyan" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#00f0ff" stopOpacity="0" />
-                        <stop offset="30%" stopColor="#00f0ff" stopOpacity="0.95" />
-                        <stop offset="85%" stopColor="#38bdf8" stopOpacity="0.9" />
-                        <stop offset="100%" stopColor="#818cf8" stopOpacity="0.3" />
-                      </linearGradient>
-                      <filter id="cyberGlowFilter" x="-40%" y="-40%" width="180%" height="180%">
-                        <feGaussianBlur stdDeviation="5" result="b1" />
-                        <feGaussianBlur stdDeviation="10" result="b2" />
-                        <feMerge>
-                          <feMergeNode in="b2" />
-                          <feMergeNode in="b1" />
-                          <feMergeNode in="SourceGraphic" />
-                        </feMerge>
-                      </filter>
-                    </defs>
-                    {/* Left neon magenta/purple swooping ribbon */}
-                    <path
-                      d="M -15 200 C 5 120, 20 55, 95 32 C 160 10, 220 22, 260 42"
-                      fill="none"
-                      stroke="url(#cyberRibbonPurple)"
-                      strokeWidth="3.5"
-                      strokeLinecap="round"
-                      filter="url(#cyberGlowFilter)"
-                      className={isPlaying ? "animate-pulse" : "opacity-50"}
-                    />
-                    <path
-                      d="M 8 230 C 35 270, 60 305, 125 315"
-                      fill="none"
-                      stroke="url(#cyberRibbonPurple)"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      filter="url(#cyberGlowFilter)"
-                      className={isPlaying ? "animate-pulse" : "opacity-40"}
-                    />
-                    {/* Right & lower neon cyan swooping ribbon */}
-                    <path
-                      d="M 145 325 C 240 330, 335 295, 360 215 C 385 135, 365 70, 310 38"
-                      fill="none"
-                      stroke="url(#cyberRibbonCyan)"
-                      strokeWidth="3.5"
-                      strokeLinecap="round"
-                      filter="url(#cyberGlowFilter)"
-                      className={isPlaying ? "animate-pulse" : "opacity-50"}
-                    />
-                  </svg>
+                  {/* ── BASE LAYER: Full Turntable Deck Image ── */}
+                  <img
+                    src="/turntable-cyber-square.jpg"
+                    alt="Cyber Turntable Deck"
+                    className="w-full h-full object-contain pointer-events-none select-none rounded-[36px] shadow-[0_25px_80px_rgba(0,0,0,0.95),0_0_80px_rgba(6,182,212,0.25)] border border-cyan-500/25"
+                  />
 
-                  {/* ── MECHANICAL CHROME TONEARM / STYLUS NEEDLE ── */}
+                  {/* ── SPINNING VINYL DISC LAYER (Concentric microgrooves + Glowing Cloud 'M') ── */}
                   <div
-                    className="absolute top-3 right-5 sm:top-4 sm:right-7 pointer-events-none z-30 transition-transform duration-700 ease-out origin-top-right"
+                    className="absolute pointer-events-none select-none rounded-full overflow-hidden flex items-center justify-center"
                     style={{
-                      transform: isPlaying ? 'rotate(24deg)' : 'rotate(-16deg)'
+                      left: '47.46%',
+                      top: '45.15%',
+                      width: '64.45%',
+                      height: '65.93%',
+                      transform: 'translate(-50%, -50%)'
                     }}
                   >
-                    {/* Tonearm Pivot Base (Brushed Metallic Chrome Turret) */}
-                    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-gradient-to-tr from-gray-300 via-gray-100 to-gray-400 border-2 border-white/90 shadow-[0_4px_16px_rgba(0,0,0,0.7)] flex items-center justify-center relative">
-                      <div className="w-7 h-7 rounded-full bg-gradient-to-br from-gray-800 via-black to-gray-900 border border-gray-500 shadow-inner flex items-center justify-center">
-                        <div className="w-3 h-3 rounded-full bg-gradient-to-tr from-cyan-400 to-purple-500 shadow-[0_0_10px_#00f0ff]" />
-                      </div>
-                    </div>
-
-                    {/* Tonearm Metal Rod / Wand */}
-                    <div className="w-1.5 h-32 sm:h-38 bg-gradient-to-r from-gray-300 via-white to-gray-400 rounded-full shadow-lg ml-4.5 sm:ml-5 -mt-1 origin-top transform -rotate-12">
-                      {/* Headshell / Stylus Cartridge */}
-                      <div className="absolute -bottom-6 -left-1.5 w-5 h-8 bg-gradient-to-b from-gray-900 via-black to-gray-900 rounded-sm border border-gray-600 shadow-2xl transform -rotate-15 flex flex-col items-center justify-between p-0.5">
-                        {/* Neon Purple Cartridge Box (From reference photo) */}
-                        <div className="w-3.5 h-1.5 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full shadow-[0_0_8px_#c084fc]" />
-                        {/* Glowing Stylus Needle Tip */}
-                        <div className={`w-0.5 h-2.5 bg-cyan-200 transition-all duration-300 ${isPlaying ? 'shadow-[0_0_10px_#00f0ff] bg-cyan-100' : 'opacity-60'}`} />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Turntable Platter Outer Metallic Beveled Rim */}
-                  <div className="relative w-60 h-60 xs:w-68 xs:h-68 sm:w-76 sm:h-76 md:w-80 md:h-80 rounded-full bg-gradient-to-tr from-gray-900 via-[#130628] to-gray-800 p-2.5 sm:p-3 shadow-[0_0_35px_rgba(6,182,212,0.3),inset_0_0_20px_rgba(168,85,247,0.3)] border border-cyan-400/30 ring-2 ring-purple-600/40 flex items-center justify-center z-10">
-
-                    {/* ── ROTATING VINYL DISC RECORD ── */}
-                    <div
-                      className={`w-full h-full rounded-full bg-gradient-to-br from-[#120624] via-[#05010c] to-[#0c0318] border border-cyan-400/20 shadow-2xl flex items-center justify-center relative select-none transition-transform ${
-                        isPlaying ? 'animate-spin-slow' : 'animate-spin-slow animation-paused'
+                    <img
+                      src="/turntable-disc-clean.png"
+                      alt="Rotating Vinyl Record"
+                      className={`w-full h-full object-contain rounded-full shadow-[0_0_30px_rgba(0,0,0,0.85)] ${
+                        isPlaying ? 'animate-spin-slow' : 'animation-paused'
                       }`}
-                    >
-                      {/* Vinyl Conic Specular Gleam Reflection */}
-                      <div className="absolute inset-0 rounded-full bg-[conic-gradient(from_45deg,transparent_0deg,rgba(0,240,255,0.08)_50deg,transparent_100deg,rgba(236,72,153,0.08)_230deg,transparent_280deg)] pointer-events-none" />
-
-                      {/* Ring 1 — Outer vinyl edge band with cyan neon rim light */}
-                      <div className="w-[93%] h-[93%] rounded-full border border-cyan-500/30 shadow-[inset_0_0_10px_rgba(6,182,212,0.2)] flex items-center justify-center">
-                        {/* Ring 2 — Microgroove 1 */}
-                        <div className="w-[87%] h-[87%] rounded-full border border-white/20 flex items-center justify-center">
-                          {/* Ring 3 — Deep dark track spacing */}
-                          <div className="w-[81%] h-[81%] rounded-full border border-purple-700/30 flex items-center justify-center">
-                            {/* Ring 4 — Luminous grooved track */}
-                            <div className="w-[75%] h-[75%] rounded-full border border-cyan-300/40 shadow-[0_0_8px_rgba(6,182,212,0.3)] flex items-center justify-center">
-                              {/* Ring 5 — Brightest concentric sheen groove */}
-                              <div className="w-[69%] h-[69%] rounded-full border border-white/60 shadow-[0_0_12px_rgba(255,255,255,0.3)] flex items-center justify-center">
-                                
-                                {/* ── CENTRAL CYBER NEON CLOUD 'M' EMBLEM (Exact from reference) ── */}
-                                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#080314] flex items-center justify-center relative shadow-[0_0_35px_rgba(6,182,212,0.85),0_0_50px_rgba(168,85,247,0.75)] border-2 border-cyan-400/80 ring-2 ring-purple-500/80">
-                                  {/* Neon Cloud with 'M' Monogram */}
-                                  <svg viewBox="0 0 100 80" className="w-14 h-11 sm:w-16 sm:h-13 filter drop-shadow-[0_0_8px_#00f0ff] drop-shadow-[0_0_12px_#ec4899]">
-                                    <defs>
-                                      <linearGradient id="cyberCloudGrad" x1="0%" y1="0%" x2="100%" y2="50%">
-                                        <stop offset="0%" stopColor="#00f0ff" />
-                                        <stop offset="45%" stopColor="#38bdf8" />
-                                        <stop offset="70%" stopColor="#c084fc" />
-                                        <stop offset="100%" stopColor="#ec4899" />
-                                      </linearGradient>
-                                    </defs>
-                                    {/* Cloud Outline */}
-                                    <path
-                                      d="M 28 55 C 20 55 16 48 18 40 C 19 33 26 30 30 31 C 32 20 44 14 55 17 C 64 19 70 27 70 34 C 77 34 83 40 82 48 C 81 55 75 55 68 55 Z"
-                                      fill="none"
-                                      stroke="url(#cyberCloudGrad)"
-                                      strokeWidth="5"
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                    />
-                                    {/* Stylized 'M' inside Cloud */}
-                                    <path
-                                      d="M 38 48 L 44 33 L 50 43 L 56 33 L 62 48"
-                                      fill="none"
-                                      stroke="#ffffff"
-                                      strokeWidth="4"
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                    />
-                                    {/* Neon Sparkle Star on 'M' */}
-                                    <polygon
-                                      points="63,33 64.5,29 66,33 70,34.5 66,36 64.5,40 63,36 59,34.5"
-                                      fill="#00f0ff"
-                                      className="filter drop-shadow-[0_0_4px_#ffffff]"
-                                    />
-                                  </svg>
-
-                                  {/* Center Metallic Spindle Hole */}
-                                  <div className="w-3.5 h-3.5 rounded-full bg-gradient-to-tr from-gray-200 via-gray-300 to-gray-500 border border-white/90 shadow-md absolute inset-0 m-auto flex items-center justify-center">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-[#080314]" />
-                                  </div>
-                                </div>
-
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    />
                   </div>
 
-                  {/* Turntable Plinth Lower Deck Bar */}
-                  <div className="w-full flex items-center justify-between text-[10px] font-mono text-cyan-400/90 mt-3 px-2 z-10">
+                  {/* ── FOREGROUND TONEARM OVERLAY (Rests directly over spinning record) ── */}
+                  <img
+                    src="/turntable-arm.png"
+                    alt="Tonearm"
+                    className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none z-20"
+                  />
+
+                  {/* Turntable Plinth Lower Status Tag */}
+                  <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between text-[10px] font-mono text-cyan-300/90 z-30 bg-black/60 backdrop-blur-md px-3.5 py-1 rounded-full border border-white/10 shadow-lg">
                     <div className="flex items-center gap-1.5">
                       <span className={`w-1.5 h-1.5 rounded-full transition-colors ${isPlaying ? 'bg-cyan-400 shadow-[0_0_8px_#00f0ff] animate-pulse' : 'bg-gray-500'}`} />
-                      <span className="uppercase tracking-wider font-bold text-gray-300 text-[10px]">
-                        {isPlaying ? 'CYBER TURNTABLE ACTIVE' : 'TONEARM RESTING · PAUSED'}
+                      <span className="uppercase tracking-wider font-bold text-gray-200 text-[10px]">
+                        {isPlaying ? 'CYBER VINYL ROTATING' : 'TURNTABLE PAUSED'}
                       </span>
                     </div>
                     <span className="font-semibold text-purple-300 tracking-widest uppercase text-[10px]">
