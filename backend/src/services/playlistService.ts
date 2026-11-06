@@ -167,6 +167,30 @@ export class PlaylistService {
   }
 
   /**
+   * Reorder tracks in playlist
+   */
+  static async reorderTracks(userId: string, playlistId: string, mediaIds: string[]) {
+    const playlist = await prisma.playlist.findUnique({ where: { id: playlistId } });
+    if (!playlist || playlist.ownerId !== userId) {
+      const err: any = new Error('Playlist not found or forbidden.');
+      err.statusCode = !playlist ? 404 : 403;
+      throw err;
+    }
+
+    // Update position of each track in parallel
+    await prisma.$transaction(
+      mediaIds.map((mediaId, index) =>
+        prisma.playlistTrack.updateMany({
+          where: { playlistId, mediaId },
+          data: { position: index }
+        })
+      )
+    );
+
+    return this.getPlaylistById(userId, playlistId);
+  }
+
+  /**
    * Remove track from playlist
    */
   static async removeTrack(userId: string, playlistId: string, mediaId: string) {

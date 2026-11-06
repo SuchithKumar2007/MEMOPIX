@@ -17,7 +17,8 @@ import {
   Loader2,
   Trash2,
   FileText,
-  Headphones
+  Headphones,
+  Sparkles
 } from 'lucide-react';
 import { useMusicPlayer } from '../context/MusicPlayerContext';
 import { useToast } from '../context/ToastContext';
@@ -360,7 +361,7 @@ export const PersistentMiniPlayer: React.FC = () => {
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full bg-purple-900/30 blur-3xl pointer-events-none" />
           <div className="absolute bottom-1/3 left-1/4 w-64 h-64 rounded-full bg-indigo-900/20 blur-3xl pointer-events-none" />
 
-          {/* Header */}
+          {/* Header with Mode Switcher */}
           <div className="flex items-center justify-between max-w-xl w-full mx-auto relative z-10">
             <button
               onClick={() => setIsExpanded(false)}
@@ -370,11 +371,43 @@ export const PersistentMiniPlayer: React.FC = () => {
               <ChevronDown className="w-6 h-6" />
             </button>
 
-            <div className="text-center">
-              <span className="text-[11px] font-bold tracking-widest uppercase text-purple-400">
-                PLAYING FROM 5 TB CLOUD
-              </span>
-              <p className="text-xs text-gray-400">Private Audio Library</p>
+            {/* Innovative 3-Way Mode Pill Switcher */}
+            <div className="flex items-center bg-white/10 p-1 rounded-full border border-white/15 backdrop-blur-md shadow-inner">
+              <button
+                onClick={() => { setShowLyrics(false); setShowQueue(false); }}
+                className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  !showLyrics && !showQueue
+                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-500/30'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <Disc3 className="w-3.5 h-3.5" />
+                <span>Disc</span>
+              </button>
+
+              <button
+                onClick={() => { setShowLyrics(true); setShowQueue(false); }}
+                className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  showLyrics
+                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-500/30'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>Lyrics</span>
+              </button>
+
+              <button
+                onClick={() => { setShowQueue(true); setShowLyrics(false); }}
+                className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  showQueue
+                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-500/30'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <ListMusic className="w-3.5 h-3.5" />
+                <span>Queue</span>
+              </button>
             </div>
 
             <div className="flex items-center gap-2">
@@ -384,26 +417,6 @@ export const PersistentMiniPlayer: React.FC = () => {
                 title="Delete this song"
               >
                 <Trash2 className="w-5 h-5" />
-              </button>
-
-              <button
-                onClick={() => { setShowLyrics(!showLyrics); setShowQueue(false); }}
-                className={`p-2 rounded-full transition-all ${
-                  showLyrics ? 'bg-purple-600 text-white' : 'bg-white/10 hover:bg-white/20 text-white'
-                }`}
-                title="Lyrics"
-              >
-                <FileText className="w-5 h-5" />
-              </button>
-
-              <button
-                onClick={() => { setShowQueue(!showQueue); setShowLyrics(false); }}
-                className={`p-2 rounded-full transition-all ${
-                  showQueue ? 'bg-purple-600 text-white' : 'bg-white/10 hover:bg-white/20 text-white'
-                }`}
-                title="View Queue"
-              >
-                <ListMusic className="w-5 h-5" />
               </button>
             </div>
           </div>
@@ -570,31 +583,39 @@ export const PersistentMiniPlayer: React.FC = () => {
                 </div>
               </div>
             ) : (
-              /* ── VINYL DISC ── */
+              /* ── INNOVATIVE SONIC VINYL PLAYER ── */
               <div className="flex flex-col items-center">
-                {/* Vinyl Disc with enhanced aura */}
-                <div className="relative group">
-                  {/* Outer ambient glow layers */}
-                  <div className={`absolute -inset-12 rounded-full bg-purple-900/25 blur-3xl -z-10 ${isPlaying ? 'animate-pulse' : ''}`} />
-                  <div className={`absolute -inset-6 rounded-full bg-purple-600/20 blur-2xl -z-10 ${isPlaying ? 'animate-pulse' : ''}`} />
+                {/* Vinyl Disc Container with atmospheric cosmic aura */}
+                <div className="relative group cursor-pointer" onClick={togglePlay} title={isPlaying ? 'Click to Pause' : 'Click to Play'}>
+                  {/* Outer ambient radiant glows */}
+                  <div className={`absolute -inset-16 rounded-full bg-purple-600/30 blur-3xl -z-10 transition-opacity duration-700 ${isPlaying ? 'animate-pulse' : 'opacity-30'}`} />
+                  <div className="absolute -inset-24 rounded-full bg-indigo-900/20 blur-3xl -z-10" />
 
-                  {/* Main vinyl disc */}
-                  <div className={`w-64 h-64 sm:w-80 sm:h-80 rounded-full bg-gradient-to-br from-[#1a0a2e] via-[#2d1050] to-[#0d0318] shadow-2xl border border-purple-800/30 flex items-center justify-center ${
-                    isPlaying ? 'animate-spin-slow' : ''
+                  {/* Micro Orbital Particle Accents (Cosmic Aura) */}
+                  {isPlaying && (
+                    <div className="absolute -inset-3 rounded-full animate-spin-slow pointer-events-none -z-5">
+                      <span className="absolute top-0 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-purple-300 shadow-[0_0_10px_#d8b4fe]" />
+                      <span className="absolute bottom-4 right-1/4 w-1.5 h-1.5 rounded-full bg-indigo-200 shadow-[0_0_8px_#a5b4fc]" />
+                    </div>
+                  )}
+
+                  {/* Main Vinyl Disc — Layered Concentric Luminous Rings */}
+                  <div className={`w-64 h-64 sm:w-80 sm:h-80 md:w-88 md:h-88 rounded-full bg-gradient-to-br from-[#1b0533] via-[#0b0117] to-[#160228] shadow-[0_0_70px_rgba(147,51,234,0.45)] border border-purple-500/30 flex items-center justify-center relative select-none transition-transform duration-700 ${
+                    isPlaying ? 'animate-spin-slow scale-[1.02]' : 'scale-100 hover:scale-[1.01]'
                   }`}>
-                    {/* Groove ring 1 — outermost */}
-                    <div className="w-[90%] h-[90%] rounded-full border border-purple-700/25 flex items-center justify-center">
-                      {/* Groove ring 2 */}
-                      <div className="w-[88%] h-[88%] rounded-full border border-purple-600/20 flex items-center justify-center">
-                        {/* Groove ring 3 */}
-                        <div className="w-[86%] h-[86%] rounded-full border border-purple-500/18 flex items-center justify-center">
-                          {/* Groove ring 4 */}
-                          <div className="w-[84%] h-[84%] rounded-full border border-purple-400/15 flex items-center justify-center">
-                            {/* Groove ring 5 */}
-                            <div className="w-[82%] h-[82%] rounded-full border border-indigo-500/12 flex items-center justify-center">
-                              {/* Center label circle */}
-                              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gradient-to-br from-purple-400 via-purple-600 to-indigo-700 flex items-center justify-center shadow-[0_0_40px_rgba(139,92,246,0.8)] border-2 border-purple-300/30">
-                                <Music className="w-10 h-10 sm:w-12 sm:h-12 text-white drop-shadow-lg" />
+                    {/* Ring 1 — Outer vinyl edge band */}
+                    <div className="w-[92%] h-[92%] rounded-full border border-purple-800/40 flex items-center justify-center">
+                      {/* Ring 2 — Outer subtle white groove */}
+                      <div className="w-[86%] h-[86%] rounded-full border border-white/20 flex items-center justify-center">
+                        {/* Ring 3 — Mid dark band */}
+                        <div className="w-[80%] h-[80%] rounded-full border border-purple-700/30 flex items-center justify-center">
+                          {/* Ring 4 — Crisp luminous white groove */}
+                          <div className="w-[74%] h-[74%] rounded-full border border-white/50 shadow-[0_0_12px_rgba(255,255,255,0.2)] flex items-center justify-center">
+                            {/* Ring 5 — Brightest luminous crisp white groove (matching reference) */}
+                            <div className="w-[68%] h-[68%] rounded-full border border-white/80 shadow-[0_0_16px_rgba(255,255,255,0.4)] flex items-center justify-center">
+                              {/* Central Glowing Purple Core */}
+                              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gradient-to-tr from-[#9333ea] via-[#a855f7] to-[#7c3aed] flex items-center justify-center shadow-[0_0_45px_rgba(168,85,247,0.95)] border-2 border-white/60 ring-4 ring-purple-500/30 group-hover:scale-105 transition-transform">
+                                <Music className="w-10 h-10 sm:w-12 sm:h-12 text-white drop-shadow-[0_2px_12px_rgba(255,255,255,0.9)]" />
                               </div>
                             </div>
                           </div>
@@ -604,14 +625,33 @@ export const PersistentMiniPlayer: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Track Title */}
-                <div className="mt-8 text-center max-w-md px-4">
-                  <h2 className="text-lg sm:text-2xl font-bold tracking-tight text-white line-clamp-1">
+                {/* Live Real-Time Equalizer Frequency Visualizer */}
+                <div className="flex items-end justify-center gap-1 h-6 mt-6 px-4">
+                  {[35, 60, 45, 80, 50, 95, 70, 40, 85, 65, 90, 55, 75, 45, 85, 60, 40, 70, 50, 30].map((h, i) => (
+                    <span
+                      key={i}
+                      className={`w-1 rounded-full bg-gradient-to-t from-purple-500 to-indigo-300 transition-all duration-150 ${
+                        isPlaying ? 'animate-pulse' : 'opacity-25'
+                      }`}
+                      style={{
+                        height: isPlaying ? `${h}%` : '20%',
+                        animationDelay: `${(i % 6) * 100}ms`
+                      }}
+                    />
+                  ))}
+                </div>
+
+                {/* Track Title & Artist */}
+                <div className="mt-4 text-center max-w-md px-4">
+                  <h2 className="text-lg sm:text-2xl font-bold tracking-tight text-white line-clamp-1 drop-shadow-sm">
                     {cleanTitle}
                   </h2>
-                  <p className="text-xs sm:text-sm text-purple-400 mt-1 font-medium tracking-wide">
-                    5 TB Cloud · Private Audio Library
-                  </p>
+                  <div className="flex items-center justify-center gap-2 mt-1">
+                    <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-purple-300 bg-purple-500/10 border border-purple-500/20 px-3 py-1 rounded-full shadow-sm">
+                      <Sparkles className="w-3 h-3 text-purple-400" />
+                      5 TB Lossless Vault · 33 ⅓ RPM Master
+                    </span>
+                  </div>
                 </div>
               </div>
             )}

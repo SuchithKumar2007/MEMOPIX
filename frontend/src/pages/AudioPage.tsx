@@ -15,7 +15,9 @@ import {
   Check,
   Edit2,
   ArrowLeft,
-  ListPlus
+  ListPlus,
+  Camera,
+  Upload
 } from 'lucide-react';
 import { MediaItem, Playlist } from '../types';
 import { mediaApi, playlistApi } from '../services/api';
@@ -66,10 +68,18 @@ export const AudioPage: React.FC<AudioPageProps> = ({
   const [isLoadError, setIsLoadError] = useState(false);
   const errorShownRef = useRef(false);
 
-  // Drag-to-reorder state
+  // Drag-to-reorder state for All Songs
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [hasCustomOrder, setHasCustomOrder] = useState(false);
+
+  // Drag-to-reorder state for Playlist
+  const [playlistDragIndex, setPlaylistDragIndex] = useState<number | null>(null);
+  const [playlistDragOverIndex, setPlaylistDragOverIndex] = useState<number | null>(null);
+
+  // Playlist Cover Image state
+  const coverInputRef = useRef<HTMLInputElement | null>(null);
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
 
   const { error, success } = useToast();
   const { playTrack, currentTrack, isPlaying, isBuffering, duration, closePlayer } = useMusicPlayer();
@@ -175,6 +185,74 @@ export const AudioPage: React.FC<AudioPageProps> = ({
     localStorage.removeItem('memopix_audio_order');
     setHasCustomOrder(false);
     loadAudio();
+  };
+
+  // ── Playlist Drag-to-Reorder Handlers ─────────────────────────────────────
+  const handlePlaylistDragStart = (index: number) => {
+    setPlaylistDragIndex(index);
+  };
+
+  const handlePlaylistDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    setPlaylistDragOverIndex(index);
+  };
+
+  const handlePlaylistDrop = async (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    if (playlistDragIndex === null || playlistDragIndex === dropIndex || !selectedPlaylist?.tracks) {
+      setPlaylistDragIndex(null);
+      setPlaylistDragOverIndex(null);
+      return;
+    }
+
+    const newTracks = [...selectedPlaylist.tracks];
+    const [dragged] = newTracks.splice(playlistDragIndex, 1);
+    newTracks.splice(dropIndex, 0, dragged);
+
+    // Update locally for instant responsiveness
+    setSelectedPlaylist({
+      ...selectedPlaylist,
+      tracks: newTracks
+    });
+    setPlaylistDragIndex(null);
+    setPlaylistDragOverIndex(null);
+
+    // Persist new order to backend
+    try {
+      const mediaIds = newTracks.map((t: any) => t.media.id);
+      await playlistApi.reorder(selectedPlaylist.id, mediaIds);
+      success('Playlist reordered successfully!');
+    } catch {
+      error('Failed to save playlist order.');
+    }
+  };
+
+  // ── Playlist Cover Upload Handler ─────────────────────────────────────────
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedPlaylist) return;
+    if (!file.type.startsWith('image/')) {
+      error('Please select an image file (PNG, JPG, WebP).');
+      return;
+    }
+
+    setIsUploadingCover(true);
+    try {
+      const res = await playlistApi.uploadCover(selectedPlaylist.id, file);
+      if (res.success) {
+        success('Playlist cover image updated!');
+        const updated = await playlistApi.getById(selectedPlaylist.id);
+        if (updated.success && updated.data) {
+          setSelectedPlaylist(updated.data);
+        }
+        loadAudio();
+      }
+    } catch {
+      error('Failed to upload cover image.');
+    } finally {
+      setIsUploadingCover(false);
+      if (coverInputRef.current) coverInputRef.current.value = '';
+    }
   };
 
   // ── Playlist Handlers ─────────────────────────────────────────────────────
@@ -590,8 +668,47 @@ export const AudioPage: React.FC<AudioPageProps> = ({
                 >
                   <ArrowLeft className="w-5 h-5" />
                 </button>
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-white shadow-lg flex-shrink-0">
-                  <Disc3 className="w-8 h-8 sm:w-10 sm:h-10 animate-spin-slow" />
+                {/* Playlist Cover Image with Upload Option */}
+                <div className="relative group/cover w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden flex-shrink-0 shadow-lg border border-purple-500/20 bg-gradient-to-tr from-purple-600 to-indigo-600">
+                  {selectedPlaylist.coverUrl ? (
+                    <img
+                      src={selectedPlaylist.coverUrl}
+                      alt={selectedPlaylist.title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-white">
+                      <Disc3 className="w-8 h-8 sm:w-10 sm:h-10 animate-spin-slow" />
+                    </div>
+                  )}
+
+                  {/* Change Cover Button (Hover / Tap) */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      coverInputRef.current?.click();
+                    }}
+                    disabled={isUploadingCover}
+                    className="absolute inset-0 bg-black/60 backdrop-blur-xs flex flex-col items-center justify-center opacity-0 group-hover/cover:opacity-100 transition-opacity text-white cursor-pointer"
+                    title="Change Playlist Cover Image"
+                  >
+                    {isUploadingCover ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <Camera className="w-5 h-5 text-purple-300" />
+                        <span className="text-[9px] font-bold mt-0.5">Cover</span>
+                      </>
+                    )}
+                  </button>
+
+                  <input
+                    ref={coverInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleCoverUpload}
+                    className="hidden"
+                  />
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
@@ -666,21 +783,55 @@ export const AudioPage: React.FC<AudioPageProps> = ({
               />
             ) : (
               <div className="bg-white dark:bg-[#121824] border border-gray-200 dark:border-[#26334D] rounded-3xl overflow-hidden shadow-sm divide-y divide-gray-100 dark:divide-gray-800/80">
+                {/* Header bar: Reorder hint & Cover change button */}
+                <div className="px-4 py-2.5 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 bg-gray-50/70 dark:bg-[#161D2B]/70 border-b border-gray-100 dark:border-gray-800">
+                  <span className="flex items-center gap-1.5 text-[11px] font-medium text-purple-600 dark:text-purple-400">
+                    <GripVertical className="w-3.5 h-3.5" />
+                    Drag rows to reorder songs in playlist
+                  </span>
+                  <button
+                    onClick={() => coverInputRef.current?.click()}
+                    className="flex items-center gap-1 text-[11px] font-bold text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+                  >
+                    <Camera className="w-3.5 h-3.5 text-purple-500" />
+                    <span>Upload Cover Image</span>
+                  </button>
+                </div>
+
                 {selectedPlaylist.tracks.map((t: any, index: number) => {
                   const media = t.media;
                   const isCurrent = currentTrack?.id === media.id;
                   const cleanName = media.originalName.replace(/\.[^/.]+$/, '');
                   const list = (selectedPlaylist.tracks || []).map((x: any) => x.media);
+                  const isDragTarget = playlistDragOverIndex === index && playlistDragIndex !== index;
+                  const isDragging = playlistDragIndex === index;
 
                   return (
                     <div
                       key={t.id || media.id}
+                      draggable
+                      onDragStart={() => handlePlaylistDragStart(index)}
+                      onDragOver={(e) => handlePlaylistDragOver(e, index)}
+                      onDrop={(e) => handlePlaylistDrop(e, index)}
                       onClick={() => playTrack(media, list)}
                       className={`flex items-center justify-between px-3 sm:px-6 py-2.5 sm:py-3 cursor-pointer transition-colors group ${
+                        isDragging ? 'opacity-40 bg-purple-100/50 dark:bg-purple-950/50' : ''
+                      } ${
+                        isDragTarget ? 'border-t-2 border-purple-500 bg-purple-50/50 dark:bg-purple-950/20' : ''
+                      } ${
                         isCurrent ? 'bg-purple-50/80 dark:bg-purple-950/30 font-semibold' : 'hover:bg-gray-50 dark:hover:bg-[#161D2B]'
                       }`}
                     >
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+                        {/* Drag Handle */}
+                        <div
+                          className="cursor-grab active:cursor-grabbing text-gray-300 hover:text-purple-500 dark:text-gray-600 dark:hover:text-purple-400 transition-colors flex-shrink-0"
+                          title="Drag to reorder"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <GripVertical className="w-3.5 h-3.5" />
+                        </div>
+
                         <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-300">
                           {isCurrent && isPlaying ? (
                             <Disc3 className="w-4 h-4 animate-spin-slow text-purple-600 dark:text-purple-400" />
@@ -786,8 +937,16 @@ export const AudioPage: React.FC<AudioPageProps> = ({
                     }}
                     className="p-4 rounded-3xl bg-white dark:bg-[#121824] border border-gray-200 dark:border-[#26334D] hover:border-purple-500/50 hover:shadow-lg transition-all cursor-pointer group"
                   >
-                    <div className="w-full aspect-square rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center mb-3 shadow-md group-hover:scale-[1.02] transition-transform">
-                      <Disc3 className="w-12 h-12 text-white group-hover:scale-110 transition-transform" />
+                    <div className="w-full aspect-square rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center mb-3 shadow-md group-hover:scale-[1.02] transition-transform overflow-hidden relative">
+                      {playlist.coverUrl ? (
+                        <img
+                          src={playlist.coverUrl}
+                          alt={playlist.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Disc3 className="w-12 h-12 text-white group-hover:scale-110 transition-transform" />
+                      )}
                     </div>
                     <h4 className="font-bold text-xs sm:text-sm text-gray-900 dark:text-white truncate">
                       {playlist.title}

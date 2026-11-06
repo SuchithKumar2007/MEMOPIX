@@ -1,6 +1,7 @@
 import { Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from '../middleware/auth.js';
 import { PlaylistService } from '../services/playlistService.js';
+import { MediaService } from '../services/mediaService.js';
 
 export class PlaylistController {
   static async list(req: AuthenticatedRequest, res: Response, next: NextFunction) {
@@ -108,6 +109,54 @@ export class PlaylistController {
 
       const result = await PlaylistService.removeTrack(req.user.id, String(req.params.id), String(req.params.mediaId));
       res.status(200).json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async reorder(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) {
+        res.status(401).json({ success: false, message: 'Unauthorized' });
+        return;
+      }
+
+      const { mediaIds } = req.body;
+      if (!Array.isArray(mediaIds)) {
+        res.status(400).json({ success: false, message: 'Array of mediaIds is required.' });
+        return;
+      }
+
+      const playlist = await PlaylistService.reorderTracks(req.user.id, String(req.params.id), mediaIds);
+      res.status(200).json({ success: true, data: playlist });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async uploadCover(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) {
+        res.status(401).json({ success: false, message: 'Unauthorized' });
+        return;
+      }
+
+      const file = req.file;
+      if (!file) {
+        res.status(400).json({ success: false, message: 'No image uploaded.' });
+        return;
+      }
+
+      const uploadResult = await MediaService.uploadMedia(req.user.id, file, true);
+      const coverUrl = uploadResult.media?.thumbnailUrl || uploadResult.media?.streamUrl;
+
+      if (!coverUrl) {
+        res.status(500).json({ success: false, message: 'Failed to process cover image.' });
+        return;
+      }
+
+      const updated = await PlaylistService.updatePlaylist(req.user.id, String(req.params.id), { coverUrl });
+      res.status(200).json({ success: true, data: updated, coverUrl });
     } catch (error) {
       next(error);
     }

@@ -449,6 +449,20 @@ export const playlistApi = {
   removeTrack: async (playlistId: string, mediaId: string) => {
     const res = await api.delete(`/playlists/${playlistId}/tracks/${mediaId}`);
     return res.data;
+  },
+
+  reorder: async (playlistId: string, mediaIds: string[]) => {
+    const res = await api.put(`/playlists/${playlistId}/reorder`, { mediaIds });
+    return res.data;
+  },
+
+  uploadCover: async (playlistId: string, file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await api.post(`/playlists/${playlistId}/cover`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return res.data;
   }
 };
 
