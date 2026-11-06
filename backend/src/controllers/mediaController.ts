@@ -289,6 +289,8 @@ export class MediaController {
         }
       }
 
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition, Content-Length, Content-Type');
       res.download(fullPath, media.originalName);
     } catch (error) {
       next(error);
@@ -364,6 +366,10 @@ export class MediaController {
       res.setHeader('Content-Type', mimeType);
       res.setHeader('Accept-Ranges', 'bytes');
       res.setHeader('Cache-Control', 'private, max-age=86400');
+
+      if (req.query.download === '1' || req.query.download === 'true') {
+        res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(media.originalName)}"`);
+      }
 
       if (req.method === 'HEAD') {
         res.setHeader('Content-Length', fileSize);

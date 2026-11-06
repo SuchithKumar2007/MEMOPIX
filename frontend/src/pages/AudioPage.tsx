@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { MediaItem, Playlist } from '../types';
 import { mediaApi, playlistApi, resolveMediaUrl } from '../services/api';
+import { downloadMediaFile } from '../utils/download';
 import { SkeletonLoader } from '../components/SkeletonLoader';
 import { EmptyState } from '../components/EmptyState';
 import { useToast } from '../context/ToastContext';
@@ -636,15 +637,17 @@ export const AudioPage: React.FC<AudioPageProps> = ({
                       </button>
 
                       {/* Download Audio Button */}
-                      <a
-                        href={resolveMediaUrl(track.downloadUrl || track.streamUrl)}
-                        download={track.originalName}
-                        onClick={(e) => e.stopPropagation()}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/30 opacity-70 sm:opacity-0 group-hover:opacity-100 transition-colors flex items-center justify-center"
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          downloadMediaFile(track);
+                        }}
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/30 opacity-70 sm:opacity-0 group-hover:opacity-100 transition-colors flex items-center justify-center cursor-pointer active:scale-95"
                         title="Download song"
                       >
                         <Download className="w-4 h-4 text-purple-400 hover:text-purple-300" />
-                      </a>
+                      </button>
 
                       {/* Delete Button */}
                       <button
@@ -866,15 +869,17 @@ export const AudioPage: React.FC<AudioPageProps> = ({
 
                       <div className="flex items-center gap-2 flex-shrink-0 ml-2">
                         {/* Download Audio Button */}
-                        <a
-                          href={resolveMediaUrl(media.downloadUrl || media.streamUrl)}
-                          download={media.originalName}
-                          onClick={(e) => e.stopPropagation()}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/30 opacity-70 sm:opacity-0 group-hover:opacity-100 transition-colors flex items-center justify-center"
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            downloadMediaFile(media);
+                          }}
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/30 opacity-70 sm:opacity-0 group-hover:opacity-100 transition-colors flex items-center justify-center cursor-pointer active:scale-95"
                           title="Download song"
                         >
                           <Download className="w-4 h-4 text-purple-400 hover:text-purple-300" />
-                        </a>
+                        </button>
 
                         <button
                           onClick={(e) => {

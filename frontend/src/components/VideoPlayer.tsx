@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { MediaItem } from '../types';
 import { resolveMediaUrl } from '../services/api';
+import { downloadMediaFile } from '../utils/download';
 import { formatDuration } from '../utils/formatters';
 
 interface VideoPlayerProps {
@@ -242,14 +243,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             <Share2 className="w-5 h-5" />
           </button>
 
-          <a
-            href={resolveMediaUrl(media.downloadUrl || media.streamUrl)}
-            download={media.originalName}
-            className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
+          <button
+            type="button"
+            onClick={() => downloadMediaFile(media)}
+            className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-colors cursor-pointer active:scale-95"
             title="Download video"
           >
             <Download className="w-5 h-5" />
-          </a>
+          </button>
 
           <button
             onClick={() => onTrash(media.id)}
@@ -303,14 +304,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 <RefreshCw className="w-3.5 h-3.5" />
                 <span>Retry Stream</span>
               </button>
-              <a
-                href={resolveMediaUrl(media.downloadUrl)}
-                download={media.originalName}
-                className="flex items-center gap-1.5 px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-xl transition-all border border-white/10"
+              <button
+                type="button"
+                onClick={() => downloadMediaFile(media)}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-xl transition-all border border-white/10 cursor-pointer active:scale-95"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>Download</span>
-              </a>
+              </button>
             </div>
           </div>
         )}

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Play, Heart, Check, Trash2, Archive, Share2, Download, Music, Pencil, FileText, Film, Image as ImageIcon } from 'lucide-react';
 import { MediaItem } from '../types';
 import { resolveMediaUrl } from '../services/api';
+import { downloadMediaFile } from '../utils/download';
 import { formatDuration, formatBytes } from '../utils/formatters';
 
 interface MediaCardProps {
@@ -174,15 +175,17 @@ export const MediaCard: React.FC<MediaCardProps> = ({
 
         <div className="flex items-center gap-1">
           {/* Quick Download Button */}
-          <a
-            href={resolveMediaUrl(media.downloadUrl || media.streamUrl)}
-            download={media.originalName}
-            onClick={e => e.stopPropagation()}
+          <button
+            type="button"
+            onClick={e => {
+              e.stopPropagation();
+              downloadMediaFile(media);
+            }}
             title="Download file"
-            className="p-1.5 rounded-lg bg-black/40 text-white hover:text-brand-300 opacity-70 sm:opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center hover:bg-black/60"
+            className="p-1.5 rounded-lg bg-black/40 text-white hover:text-brand-300 opacity-70 sm:opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center hover:bg-black/60 cursor-pointer active:scale-95"
           >
             <Download className="w-3.5 h-3.5" />
-          </a>
+          </button>
 
           {/* Quick Rename Button */}
           {onRename && (

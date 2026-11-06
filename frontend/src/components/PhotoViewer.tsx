@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { MediaItem } from '../types';
 import { resolveMediaUrl } from '../services/api';
+import { downloadMediaFile } from '../utils/download';
 import { formatBytes } from '../utils/formatters';
 import { format, parseISO } from 'date-fns';
 
@@ -357,14 +358,14 @@ export const PhotoViewer: React.FC<PhotoViewerProps> = ({
             <Share2 className="w-5 h-5" />
           </button>
 
-          <a
-            href={resolveMediaUrl(media.downloadUrl)}
-            download={media.originalName}
-            title="Download"
-            className="p-1.5 sm:p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
+          <button
+            type="button"
+            onClick={() => downloadMediaFile(media)}
+            title="Download photo"
+            className="p-1.5 sm:p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-colors cursor-pointer active:scale-95"
           >
             <Download className="w-5 h-5" />
-          </a>
+          </button>
 
           <button
             onClick={() => setShowInfo(prev => !prev)}
@@ -447,14 +448,14 @@ export const PhotoViewer: React.FC<PhotoViewerProps> = ({
                   Image stream is connecting or waking up from cold standby.
                 </p>
               </div>
-              <a
-                href={resolveMediaUrl(media.downloadUrl)}
-                download={media.originalName}
-                className="flex items-center gap-1.5 px-3.5 py-2 bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold rounded-xl transition-all shadow-md"
+              <button
+                type="button"
+                onClick={() => downloadMediaFile(media)}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold rounded-xl transition-all shadow-md cursor-pointer active:scale-95"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>Download Photo</span>
-              </a>
+              </button>
             </div>
           )}
 
@@ -546,14 +547,14 @@ export const PhotoViewer: React.FC<PhotoViewerProps> = ({
           >
             <Share2 className="w-5 h-5" />
           </button>
-          <a
-            href={resolveMediaUrl(media.downloadUrl)}
-            download={media.originalName}
-            className="p-2 active:scale-90 transition-transform"
-            title="Download"
+          <button
+            type="button"
+            onClick={() => downloadMediaFile(media)}
+            className="p-2 active:scale-90 transition-transform cursor-pointer"
+            title="Download photo"
           >
             <Download className="w-5 h-5" />
-          </a>
+          </button>
           <button
             onClick={() => setShowInfo(prev => !prev)}
             className={`p-2 active:scale-90 transition-transform ${showInfo ? 'text-brand-400' : ''}`}
