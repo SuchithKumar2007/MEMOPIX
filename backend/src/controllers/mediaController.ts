@@ -7,6 +7,7 @@ import { StorageService } from '../services/storageService.js';
 import { verifySignedMediaToken } from '../utils/token.js';
 import { bulkActionSchema } from '../validators/mediaValidators.js';
 import prisma from '../prisma.js';
+import * as musicMetadata from 'music-metadata';
 
 export class MediaController {
   /**
@@ -462,6 +463,96 @@ export class MediaController {
       fs.createReadStream(filePath).pipe(res);
     } catch (err) {
       res.status(500).send('Error streaming thumbnail.');
+    }
+  }
+
+  /**
+   * GET /api/media/:id/lyrics
+   * Auto-detects lyrics from the audio file:
+   * 1. Reads USLT (unsynchronised lyrics) ID3 tag embedded in the MP3/audio file
+   * 2. Falls back to a sidecar .lrc or .txt file with the same base name
+   * Returns: { lyrics: string | null, source: 'id3' | 'lrc' | 'txt' | null }
+   */
+  static async getLyrics(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) {
+        res.status(401).json({ success: false, message: 'Unauthorized' });
+        return;
+      }
+
+      const mediaId = String(req.params.id);
+
+      const media = await prisma.media.findFirst({
+        where: { id: mediaId, ownerId: req.user.id, isDeleted: false }
+      });
+
+      if (!media) {
+        res.status(404).json({ success: false, message: 'Media not found.' });
+        return;
+      }
+
+      if (!media.mimeType.startsWith('audio/')) {
+        res.status(400).json({ success: false, message: 'Not an audio file.' });
+        return;
+      }
+
+      const absPath = StorageService.getAbsolutePath(media.storagePath);
+
+      // Helper: extract lyrics from music-metadata result
+      const extractFromMeta = (mm: musicMetadata.IAudioMetadata): string | null => {
+        const uslt = mm.native?.['ID3v2.4']?.find((t: any) => t.id === 'USLT')
+          || mm.native?.['ID3v2.3']?.find((t: any) => t.id === 'USLT')
+          || mm.native?.['ID3v2.2']?.find((t: any) => t.id === 'ULT');
+        if (uslt?.value) {
+          const v = uslt.value;
+          const txt = typeof v === 'string' ? v : (v as any).text || '';
+          if (txt.trim()) return txt.trim();
+        }
+        const cl = (mm.common as any).lyrics;
+        if (Array.isArray(cl) && cl.length > 0) {
+          const txt = typeof cl[0] === 'string' ? cl[0] : (cl[0] as any)?.text;
+          if (txt?.trim()) return txt.trim();
+        }
+        return null;
+      };
+
+      // 1. Try disk file
+      if (fs.existsSync(absPath)) {
+        try {
+          const mm = await musicMetadata.parseFile(absPath, { duration: false, skipCovers: true });
+          const found = extractFromMeta(mm);
+          if (found) {
+            res.status(200).json({ success: true, lyrics: found, source: 'id3' });
+            return;
+          }
+        } catch {}
+
+        // 2. Sidecar .lrc
+        const dir = path.dirname(absPath);
+        const base = path.basename(absPath, path.extname(absPath));
+        const lrcPath = path.join(dir, `${base}.lrc`);
+        const txtPath = path.join(dir, `${base}.txt`);
+
+        if (fs.existsSync(lrcPath)) {
+          const content = await fs.promises.readFile(lrcPath, 'utf-8');
+          if (content.trim()) { res.status(200).json({ success: true, lyrics: content.trim(), source: 'lrc' }); return; }
+        }
+        if (fs.existsSync(txtPath)) {
+          const content = await fs.promises.readFile(txtPath, 'utf-8');
+          if (content.trim()) { res.status(200).json({ success: true, lyrics: content.trim(), source: 'txt' }); return; }
+        }
+      } else if (media.fileData) {
+        // 3. File stored in DB buffer
+        try {
+          const mm = await musicMetadata.parseBuffer(Buffer.from(media.fileData), media.mimeType, { skipCovers: true });
+          const found = extractFromMeta(mm);
+          if (found) { res.status(200).json({ success: true, lyrics: found, source: 'id3' }); return; }
+        } catch {}
+      }
+
+      res.status(200).json({ success: true, lyrics: null, source: null });
+    } catch (error) {
+      next(error);
     }
   }
 }

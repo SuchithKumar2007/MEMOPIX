@@ -24,6 +24,7 @@ router.post('/empty-trash', authenticate, MediaController.emptyTrash);
 
 router.get('/:id', authenticate, MediaController.getById);
 router.get('/:id/download', authenticate, MediaController.download);
+router.get('/:id/lyrics', authenticate, MediaController.getLyrics);
 router.patch('/:id', authenticate, MediaController.update);
 router.delete('/:id', authenticate, MediaController.trash);
 router.post('/:id/restore', authenticate, MediaController.restore);

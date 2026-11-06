@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Play,
   Pause,
@@ -22,9 +22,11 @@ import { useMusicPlayer } from '../context/MusicPlayerContext';
 import { useToast } from '../context/ToastContext';
 import { mediaApi } from '../services/api';
 import { formatDuration } from '../utils/formatters';
-
 export const PersistentMiniPlayer: React.FC = () => {
   const [showLyrics, setShowLyrics] = useState(false);
+  const [lyricsText, setLyricsText] = useState<string | null>(null);
+  const [lyricsSource, setLyricsSource] = useState<'id3' | 'lrc' | 'txt' | null>(null);
+  const [lyricsLoading, setLyricsLoading] = useState(false);
   const {
     currentTrack,
     isPlaying,
@@ -57,6 +59,32 @@ export const PersistentMiniPlayer: React.FC = () => {
   } = useMusicPlayer();
 
   const { success, error } = useToast();
+
+  // Auto-fetch lyrics whenever the lyrics sheet is opened or the track changes
+  useEffect(() => {
+    if (!showLyrics || !currentTrack) return;
+    let cancelled = false;
+    setLyricsLoading(true);
+    setLyricsText(null);
+    setLyricsSource(null);
+    mediaApi.getLyrics(currentTrack.id)
+      .then(result => {
+        if (!cancelled) {
+          setLyricsText(result.lyrics);
+          setLyricsSource(result.source);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setLyricsText(null);
+          setLyricsSource(null);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLyricsLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [showLyrics, currentTrack?.id]);
 
   const handleDeleteCurrentTrack = async () => {
     if (!currentTrack) return;
@@ -337,15 +365,34 @@ export const PersistentMiniPlayer: React.FC = () => {
             ) : showLyrics ? (
               /* ── LYRICS SHEET ── */
               <div className="w-full h-80 sm:h-96 flex flex-col items-center">
-                <div className="w-full flex-1 bg-white/5 border border-purple-500/20 rounded-3xl p-6 overflow-y-auto flex flex-col items-center justify-center shadow-[0_0_40px_rgba(139,92,246,0.15)]">
+                <div className="w-full flex-1 bg-white/5 border border-purple-500/20 rounded-3xl p-6 overflow-y-auto flex flex-col items-center shadow-[0_0_40px_rgba(139,92,246,0.15)]">
                   <Music className="w-10 h-10 text-purple-400/60 mb-4" />
                   <h3 className="text-base font-bold text-white mb-1 text-center">{cleanTitle}</h3>
                   <p className="text-xs text-purple-400 mb-6 text-center">5 TB Cloud · Private Audio Library</p>
-                  <div className="text-center space-y-3 text-gray-400 text-sm leading-relaxed">
-                    <p className="text-purple-300/50 italic text-xs tracking-widest uppercase mb-4">♪ Lyrics</p>
-                    <p className="text-gray-500 text-sm">No lyrics available for this track.</p>
-                    <p className="text-gray-600 text-xs mt-2">Upload a <span className="text-purple-400 font-mono">.lrc</span> or <span className="text-purple-400 font-mono">.txt</span> lyrics file<br />with the same filename to enable lyrics.</p>
-                  </div>
+                  <p className="text-purple-300/50 italic text-xs tracking-widest uppercase mb-4">♪ Lyrics</p>
+
+                  {lyricsLoading ? (
+                    <div className="flex flex-col items-center gap-3 mt-4">
+                      <Loader2 className="w-6 h-6 text-purple-400 animate-spin" />
+                      <p className="text-gray-400 text-xs">Detecting lyrics...</p>
+                    </div>
+                  ) : lyricsText ? (
+                    <div className="w-full text-center">
+                      {lyricsSource && (
+                        <span className="inline-block text-[10px] font-bold tracking-widest uppercase text-purple-500 bg-purple-500/10 border border-purple-500/20 rounded-full px-3 py-0.5 mb-4">
+                          {lyricsSource === 'id3' ? '🎵 Embedded ID3 Tag' : lyricsSource === 'lrc' ? '📄 .lrc File' : '📄 .txt File'}
+                        </span>
+                      )}
+                      <pre className="text-gray-200 text-sm leading-7 whitespace-pre-wrap font-sans text-center">
+                        {lyricsText}
+                      </pre>
+                    </div>
+                  ) : (
+                    <div className="text-center space-y-3 mt-2">
+                      <p className="text-gray-500 text-sm">No lyrics found for this track.</p>
+                      <p className="text-gray-600 text-xs">Embed lyrics in the MP3 ID3 tag, or upload a<br /><span className="text-purple-400 font-mono">.lrc</span> / <span className="text-purple-400 font-mono">.txt</span> file with the same filename.</p>
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (

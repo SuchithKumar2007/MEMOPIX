@@ -289,6 +289,11 @@ export const mediaApi = {
 
   downloadZip: (mediaIds: string[]) => {
     return api.post('/media/bulk-download', { mediaIds }, { responseType: 'blob' });
+  },
+
+  getLyrics: async (id: string): Promise<{ lyrics: string | null; source: 'id3' | 'lrc' | 'txt' | null }> => {
+    const res = await api.get(`/media/${id}/lyrics`);
+    return res.data?.success ? { lyrics: res.data.lyrics, source: res.data.source } : { lyrics: null, source: null };
   }
 };
 
