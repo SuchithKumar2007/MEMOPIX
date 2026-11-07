@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   User as UserIcon,
   Lock,
@@ -9,13 +9,14 @@ import {
   Share2,
   HardDrive,
   CheckCircle2,
-  LogOut
+  LogOut,
+  Server
 } from 'lucide-react';
 import { PasswordInput } from '../components/PasswordInput';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useToast } from '../context/ToastContext';
-import { userApi } from '../services/api';
+import { userApi, getApiBase } from '../services/api';
 
 export const SettingsPage: React.FC = () => {
   const { user, logout, refreshProfile } = useAuth();
@@ -31,6 +32,62 @@ export const SettingsPage: React.FC = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  // Backend server failover state
+  const [activeServerUrl, setActiveServerUrl] = useState<string>(() => getApiBase());
+  const [customBackendInput, setCustomBackendInput] = useState<string>(() => localStorage.getItem('memopix_custom_backend_url') || '');
+  const [isTestingBackend, setIsTestingBackend] = useState<boolean>(false);
+  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'checking' | 'idle'>('idle');
+
+  useEffect(() => {
+    checkActiveBackend();
+  }, []);
+
+  const checkActiveBackend = async () => {
+    setConnectionStatus('checking');
+    try {
+      const base = getApiBase();
+      const res = await fetch(`${base}/health`, { method: 'GET' });
+      if (res.ok) {
+        setConnectionStatus('connected');
+      } else {
+        setConnectionStatus('idle');
+      }
+    } catch {
+      setConnectionStatus('idle');
+    }
+  };
+
+  const handleTestAndSaveBackend = async () => {
+    const raw = customBackendInput.trim();
+    if (!raw) {
+      error('Please enter a valid backend server URL.');
+      return;
+    }
+    setIsTestingBackend(true);
+    try {
+      const clean = raw.replace(/\/$/, '');
+      const testUrl = clean.endsWith('/api') ? `${clean}/health` : `${clean}/api/health`;
+      const res = await fetch(testUrl, { method: 'GET' });
+      if (!res.ok) throw new Error('Health check failed');
+      localStorage.setItem('memopix_custom_backend_url', clean);
+      setActiveServerUrl(getApiBase());
+      setConnectionStatus('connected');
+      success('Connected successfully! Backend failover applied.');
+    } catch {
+      error('Could not reach backend at that URL. Check the address and try again.');
+    } finally {
+      setIsTestingBackend(false);
+    }
+  };
+
+  const handleResetBackend = () => {
+    localStorage.removeItem('memopix_custom_backend_url');
+    setCustomBackendInput('');
+    setActiveServerUrl(getApiBase());
+    checkActiveBackend();
+    success('Reset to default Render production backend.');
+  };
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -276,6 +333,81 @@ export const SettingsPage: React.FC = () => {
                 <span>System</span>
               </button>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Cloud Server & Failover Connection */}
+      <section className="bg-white dark:bg-[#121824] border border-gray-200 dark:border-[#26334D] rounded-3xl p-6 shadow-sm space-y-6">
+        <div className="flex items-center gap-3 pb-4 border-b border-gray-100 dark:border-[#26334D]">
+          <div className="p-2.5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-500">
+            <Server className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-base font-bold text-gray-900 dark:text-white">
+              Cloud Backend & Server Failover
+            </h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Active API endpoint and zero-downtime failover settings
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className="p-4 bg-gray-50 dark:bg-[#1A2234] rounded-2xl border border-gray-200 dark:border-[#26334D] space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-gray-900 dark:text-white">
+                  Active Server URL
+                </p>
+                <p className="text-[11px] text-gray-400 font-mono">
+                  {activeServerUrl}
+                </p>
+              </div>
+              <span className={`px-2.5 py-1 text-[11px] font-bold rounded-full flex items-center gap-1.5 ${
+                connectionStatus === 'connected'
+                  ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300'
+                  : connectionStatus === 'checking'
+                  ? 'bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+              }`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${
+                  connectionStatus === 'connected' ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'
+                }`} />
+                {connectionStatus === 'connected' ? 'ONLINE' : connectionStatus === 'checking' ? 'CHECKING...' : 'STANDBY'}
+              </span>
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <input
+                type="text"
+                value={customBackendInput}
+                onChange={e => setCustomBackendInput(e.target.value)}
+                placeholder="e.g. https://memopix-backend.koyeb.app"
+                className="flex-1 bg-white dark:bg-[#121824] border border-gray-200 dark:border-[#26334D] rounded-xl px-3 py-2 text-xs font-mono text-gray-900 dark:text-white outline-none focus:border-brand-500"
+              />
+              <button
+                type="button"
+                onClick={handleTestAndSaveBackend}
+                disabled={isTestingBackend}
+                className="px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 disabled:opacity-50"
+              >
+                {isTestingBackend ? 'Testing...' : 'Test & Apply'}
+              </button>
+              {localStorage.getItem('memopix_custom_backend_url') && (
+                <button
+                  type="button"
+                  onClick={handleResetBackend}
+                  className="px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-white/10 dark:hover:bg-white/15 text-gray-600 dark:text-gray-300 rounded-xl text-xs font-bold transition-all"
+                  title="Reset to default Render backend"
+                >
+                  Reset
+                </button>
+              )}
+            </div>
+            <p className="text-[10px] text-gray-500 dark:text-gray-400 leading-relaxed">
+              💡 If Render free tier ever slows down or exhausts monthly bandwidth, deploy your backend for free on Koyeb (50 GB/month, no card required) and paste its URL here to switch seamlessly with zero downtime.
+            </p>
           </div>
         </div>
       </section>
