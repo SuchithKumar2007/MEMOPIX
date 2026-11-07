@@ -365,7 +365,15 @@ export class MediaController {
 
       res.setHeader('Content-Type', mimeType);
       res.setHeader('Accept-Ranges', 'bytes');
-      res.setHeader('Cache-Control', 'private, max-age=86400');
+      res.setHeader('Cache-Control', 'public, max-age=604800, stale-while-revalidate=86400');
+
+      const etag = `W/"${media.id}-${fileSize}-${Math.floor(stat.mtimeMs)}"`;
+      res.setHeader('ETag', etag);
+
+      if (req.headers['if-none-match'] === etag) {
+        res.status(304).end();
+        return;
+      }
 
       if (req.query.download === '1' || req.query.download === 'true') {
         res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(media.originalName)}"`);
@@ -465,7 +473,17 @@ export class MediaController {
       }
 
       res.setHeader('Content-Type', media.thumbnailPath ? 'image/webp' : media.mimeType);
-      res.setHeader('Cache-Control', 'private, max-age=86400');
+      res.setHeader('Cache-Control', 'public, max-age=604800, stale-while-revalidate=86400');
+
+      const stat = await fs.promises.stat(filePath);
+      const etag = `W/"${media.id}-thumb-${stat.size}-${Math.floor(stat.mtimeMs)}"`;
+      res.setHeader('ETag', etag);
+
+      if (req.headers['if-none-match'] === etag) {
+        res.status(304).end();
+        return;
+      }
+
       fs.createReadStream(filePath).pipe(res);
     } catch (err) {
       res.status(500).send('Error streaming thumbnail.');
