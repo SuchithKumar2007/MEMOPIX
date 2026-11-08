@@ -27,7 +27,8 @@ export class MediaController {
       }
 
       const forceDuplicate = req.body.forceDuplicate === 'true' || req.body.forceDuplicate === true;
-      const result = await MediaService.uploadMedia(req.user.id, file, forceDuplicate);
+      const folderId = req.body.folderId && req.body.folderId !== 'null' ? String(req.body.folderId) : null;
+      const result = await MediaService.uploadMedia(req.user.id, file, forceDuplicate, folderId);
 
       res.status(result.duplicateDetected ? 200 : 201).json({
         success: true,

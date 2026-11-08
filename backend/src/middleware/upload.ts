@@ -57,27 +57,11 @@ const storage = multer.diskStorage({
 export const uploadMiddleware = multer({
   storage,
   limits: {
-    // MP4 files and media have NO per-file limit!
-    // Files can be arbitrarily large (e.g. 10 GB, 50 GB, 100 GB+),
-    // bounded only by the user's total 5 TB (5,000,000,000,000 bytes) storage quota.
-    fileSize: 5000000000000 // 5 TB
+    // 5 TB total quota check enforced at service layer
+    fileSize: 5000000000000
   },
-  fileFilter: (_req, file, cb) => {
-    const lowerName = file.originalname.toLowerCase();
-    const isImage = file.mimetype.startsWith('image/');
-    const isVideo = file.mimetype.startsWith('video/') || lowerName.endsWith('.mp4') || lowerName.endsWith('.mov') || lowerName.endsWith('.webm');
-    const isAudio = file.mimetype.startsWith('audio/') || 
-      lowerName.endsWith('.mp3') || 
-      lowerName.endsWith('.wav') || 
-      lowerName.endsWith('.m4a') || 
-      lowerName.endsWith('.aac') || 
-      lowerName.endsWith('.flac') ||
-      lowerName.endsWith('.ogg');
-
-    if (ALLOWED_MIMES.includes(file.mimetype) || isImage || isVideo || isAudio) {
-      cb(null, true);
-    } else {
-      cb(new Error(`File type ${file.mimetype} is not supported. Please upload photos, videos (MP4), or audio (MP3).`));
-    }
+  fileFilter: (_req, _file, cb) => {
+    // Accept all user uploads: photos, videos, audio, documents, and folder files
+    cb(null, true);
   }
 });

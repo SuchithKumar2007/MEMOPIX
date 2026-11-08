@@ -26,7 +26,8 @@ export class MediaService {
   static async uploadMedia(
     userId: string,
     file: Express.Multer.File,
-    forceDuplicate: boolean = false
+    forceDuplicate: boolean = false,
+    folderId?: string | null
   ) {
     let fileHash: string;
     if (file.buffer) {
@@ -35,6 +36,19 @@ export class MediaService {
       fileHash = await calculateFileHash(file.path);
     } else {
       fileHash = `${Date.now()}_${file.originalname}`;
+    }
+
+    // Determine category
+    const lowerName = file.originalname.toLowerCase();
+    let category = 'other';
+    if (file.mimetype.startsWith('image/') || /\.(jpe?g|png|gif|webp|svg|bmp|heic|heif|tiff?)$/i.test(lowerName)) {
+      category = 'photo';
+    } else if (file.mimetype.startsWith('video/') || /\.(mp4|mov|webm|mkv|avi|wmv|3gp|flv|m4v)$/i.test(lowerName)) {
+      category = 'video';
+    } else if (file.mimetype.startsWith('audio/') || /\.(mp3|wav|m4a|flac|aac|ogg|wma|opus)$/i.test(lowerName)) {
+      category = 'audio';
+    } else if (file.mimetype.includes('pdf') || file.mimetype.includes('document') || file.mimetype.includes('text') || /\.(pdf|docx?|xlsx?|pptx?|txt|csv|zip|rar|tar|gz|7z)$/i.test(lowerName)) {
+      category = 'document';
     }
 
     // 1. Duplicate Detection Check
@@ -76,7 +90,7 @@ export class MediaService {
       throw error;
     }
 
-    // 3. Save to Private Storage & Generate Thumbnail
+    // 3. Save to Private Storage & Generate Thumbnail (Streamed directly to disk, 0 RAM overhead)
     const fileSource = file.path || file.buffer;
     const processed = await StorageService.saveMediaFile(
       userId,
@@ -85,33 +99,20 @@ export class MediaService {
       file.mimetype
     );
 
-    // Read buffer for database persistence (files <= 30MB are persisted in DB across server restarts)
-    let fileBuffer: Buffer | null = null;
-    if (file.size <= 30 * 1024 * 1024) {
-      if (file.buffer) {
-        fileBuffer = file.buffer;
-      } else if (file.path && fs.existsSync(file.path)) {
-        try { fileBuffer = await fs.promises.readFile(file.path); } catch {}
-      } else {
-        const absSaved = StorageService.getAbsolutePath(processed.storagePath);
-        if (fs.existsSync(absSaved)) {
-          try { fileBuffer = await fs.promises.readFile(absSaved); } catch {}
-        }
-      }
-    }
-
-    // 4. Save Media Record to DB
+    // 4. Save Media Record to DB (Lightweight metadata only - never store multi-megabyte binary in DB)
     const media = await prisma.media.create({
       data: {
         ownerId: userId,
+        folderId: folderId || null,
         fileName: path.basename(processed.storagePath),
         originalName: file.originalname,
         mimeType: file.mimetype,
+        category,
         fileSize: BigInt(file.size),
         fileHash,
         storagePath: processed.storagePath,
         thumbnailPath: processed.thumbnailPath,
-        fileData: fileBuffer,
+        fileData: null,
         width: processed.width,
         height: processed.height,
         duration: null,
