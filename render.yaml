@@ -6,27 +6,17 @@ services:
     region: singapore
     rootDir: backend
     buildCommand: npm install && npm run build
-    startCommand: npx prisma db push --accept-data-loss && node dist/server.js
+    startCommand: node dist/server.js
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: memopix-db
-          property: connectionString
+        sync: false
       - key: JWT_SECRET
         generateValue: true
       - key: NODE_ENV
         value: production
       - key: FRONTEND_URL
-        value: https://memopix-tas.vercel.app
+        value: https://memopix-tau.vercel.app
       - key: STORAGE_LIMIT_BYTES
         value: "5000000000000"
       - key: JWT_EXPIRES_IN
         value: 7d
-
-databases:
-  - name: memopix-db
-    databaseName: memopix_db
-    user: memopix_db_user
-    plan: free
-    region: singapore
-    postgresMajorVersion: "15"

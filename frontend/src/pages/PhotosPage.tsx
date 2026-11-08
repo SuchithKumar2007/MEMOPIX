@@ -36,9 +36,12 @@ export const PhotosPage: React.FC<PhotosPageProps> = ({
   const errorShownRef = useRef(false);
   const { error } = useToast();
 
-  const loadPhotos = async () => {
+  const [retryCountdown, setRetryCountdown] = useState<number | null>(null);
+
+  const loadPhotos = async (isManual = false) => {
     setIsLoading(true);
     setIsLoadError(false);
+    setRetryCountdown(null);
     try {
       const res = await mediaApi.list({
         view: 'photos',
@@ -82,6 +85,17 @@ export const PhotosPage: React.FC<PhotosPageProps> = ({
       setIsLoading(false);
     }
   };
+
+  // Auto-retry when server is waking up
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (isLoadError) {
+      timer = setTimeout(() => {
+        loadPhotos();
+      }, 6500);
+    }
+    return () => clearTimeout(timer);
+  }, [isLoadError]);
 
   useEffect(() => {
     loadPhotos();

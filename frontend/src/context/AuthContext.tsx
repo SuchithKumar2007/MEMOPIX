@@ -57,7 +57,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const initAuth = async () => {
       if (token) {
-        await refreshProfile();
+        // Fast init with cached user; refresh in background with max 3.5s timeout
+        try {
+          await Promise.race([
+            refreshProfile(),
+            new Promise(resolve => setTimeout(resolve, 3500))
+          ]);
+        } catch {
+          // Keep cached user if network fails
+        }
       }
       setIsLoading(false);
     };

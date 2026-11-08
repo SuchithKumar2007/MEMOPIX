@@ -20,13 +20,14 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
   useEffect(() => {
     const startTime = Date.now();
     const interval = 25; // 40fps progress tick
+    const MAX_SPLASH_TIMEOUT = 4200; // Never freeze user longer than 4.2s even if cloud is waking up
 
     const timer = setInterval(() => {
       const elapsed = Date.now() - startTime;
       let pct = Math.min(Math.round((elapsed / minDuration) * 100), 100);
 
-      // If app is still loading after min duration, hold at 96%
-      if (pct >= 96 && isLoading) {
+      // If app is still loading after min duration, hold at 96% until MAX_SPLASH_TIMEOUT
+      if (pct >= 96 && isLoading && elapsed < MAX_SPLASH_TIMEOUT) {
         pct = 96;
         setStatusText('Connecting to 5 TB Private Vault...');
       } else if (pct < 25) {
@@ -41,7 +42,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
 
       setProgress(pct);
 
-      if (elapsed >= minDuration && !isLoading) {
+      if ((elapsed >= minDuration && !isLoading) || elapsed >= MAX_SPLASH_TIMEOUT) {
         clearInterval(timer);
         setProgress(100);
         setStatusText('Welcome to MEMOPIX');
