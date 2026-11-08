@@ -168,7 +168,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({
         ref={videoInputRef}
         onChange={(e) => e.target.files && handleFilesAdded(e.target.files)}
         accept="video/*"
-        capture="environment"
+        multiple
         className="hidden"
       />
       <input
