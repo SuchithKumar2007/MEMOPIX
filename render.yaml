@@ -6,7 +6,7 @@ services:
     region: singapore
     rootDir: backend
     buildCommand: npm install && npm run build
-    startCommand: node dist/server.js
+    startCommand: node --max-old-space-size=400 dist/server.js
     envVars:
       - key: DATABASE_URL
         sync: false
