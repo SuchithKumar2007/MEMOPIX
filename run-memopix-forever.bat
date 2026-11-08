@@ -6,38 +6,35 @@ echo ======================================================================
 echo           MEMOPIX - 5 TB PRIVATE PHOTO, VIDEO & AUDIO CLOUD
 echo ======================================================================
 echo.
-echo [1/4] Starting Backend Server (Port 5000)...
-start "MEMOPIX-Backend" cmd /k "cd /d "%~dp0backend" & npm.cmd run dev"
+echo [1/3] Starting Unified Backend Server (Port 5000)...
+start "MEMOPIX-Backend" cmd /k "cd /d "%~dp0backend" & node dist/server.js"
 
-timeout /t 8 /nobreak >nul
+timeout /t 4 /nobreak >nul
 
-echo [2/4] Starting Frontend Server (Port 5173)...
-start "MEMOPIX-Frontend" cmd /k "cd /d "%~dp0frontend" & npm.cmd run dev"
+echo [2/3] Opening MEMOPIX in Laptop Browser...
+start http://localhost:5000
 
-timeout /t 6 /nobreak >nul
-
-echo [3/4] Opening MEMOPIX in browser...
-start http://localhost:5173
-
-echo [4/4] Starting Cloudflare Public Tunnel (Worldwide Access)...
-start "MEMOPIX-Cloudflare-Tunnel" cmd /k "cd /d "%~dp0" & title MEMOPIX Cloudflare Tunnel & cloudflared.exe tunnel --url http://localhost:5173 --no-autoupdate"
+echo [3/3] Starting Cloudflare Mobile Tunnel (Worldwide Access)...
+start "MEMOPIX-Cloudflare-Tunnel" cmd /k "cd /d "%~dp0" & title MEMOPIX Cloudflare Tunnel & cloudflared.exe tunnel --url http://localhost:5000 --no-autoupdate"
 
 echo.
 echo ======================================================================
 echo                     MEMOPIX IS NOW RUNNING!
 echo ======================================================================
 echo.
-echo  [LOCAL] Browser opened automatically:
-echo      ==> http://localhost:5173
+echo  [LAPTOP] Browser opened:
+echo      ==^> http://localhost:5000
 echo.
-echo  [WI-FI] On same home network (fastest):
-echo      ==> http://192.168.29.61:5173
+echo  [MOBILE - HOME WI-FI]:
+echo      ==^> http://192.168.1.3:5000
 echo.
-echo  [WORLDWIDE] On mobile data:
-echo      ==> Check the "MEMOPIX-Cloudflare-Tunnel" window for https:// link!
+echo  [MOBILE - ANYWHERE / 4G / 5G]:
+echo      ==^> Check the "MEMOPIX-Cloudflare-Tunnel" window for your
+echo          https://...trycloudflare.com link!
 echo.
-echo  NOTE: You can completely CLOSE Antigravity!
-echo  These servers run independently in Windows and will stay online.
+echo  [INSTALL ON PHONE]:
+echo      ==^> Open either link in Chrome on your phone
+echo      ==^> Tap "Install App" or 3-dots -^> "Add to Home screen"
 echo ======================================================================
 echo.
 pause

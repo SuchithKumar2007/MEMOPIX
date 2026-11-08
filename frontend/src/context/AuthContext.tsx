@@ -23,7 +23,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return saved ? JSON.parse(saved) : null;
   });
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('memopix_token'));
-  const [storage, setStorage] = useState<StorageStats | null>(null);
+  const [storage, setStorage] = useState<StorageStats | null>(() => {
+    const saved = localStorage.getItem('memopix_storage');
+    return saved ? JSON.parse(saved) : null;
+  });
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const refreshStorage = async () => {
@@ -32,6 +35,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const res = await storageApi.getUsage();
         if (res.success && res.data) {
           setStorage(res.data);
+          try {
+            localStorage.setItem('memopix_storage', JSON.stringify(res.data));
+          } catch {}
         }
       }
     } catch {
@@ -47,6 +53,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(res.data.user);
           setStorage(res.data.storage);
           localStorage.setItem('memopix_user', JSON.stringify(res.data.user));
+          if (res.data.storage) {
+            try {
+              localStorage.setItem('memopix_storage', JSON.stringify(res.data.storage));
+            } catch {}
+          }
         }
       }
     } catch (err) {

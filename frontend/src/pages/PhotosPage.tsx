@@ -18,7 +18,8 @@ interface PhotosPageProps {
   reloadTrigger: number;
 }
 
-const AUTO_RETRY_DELAYS = [5000, 8000, 10000, 12000, 15000, 20000, 20000, 20000, 20000, 20000]; // up to ~2.5 min total
+const CACHE_KEY = 'memopix_cache_photos';
+const AUTO_RETRY_DELAYS = [3000, 5000, 8000, 10000, 15000];
 
 export const PhotosPage: React.FC<PhotosPageProps> = ({
   searchQuery,
@@ -31,8 +32,23 @@ export const PhotosPage: React.FC<PhotosPageProps> = ({
   onRename,
   reloadTrigger
 }) => {
-  const [media, setMedia] = useState<MediaItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [media, setMedia] = useState<MediaItem[]>(() => {
+    try {
+      const saved = localStorage.getItem(CACHE_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [isLoading, setIsLoading] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem(CACHE_KEY);
+      const parsed = saved ? JSON.parse(saved) : [];
+      return parsed.length === 0;
+    } catch {
+      return true;
+    }
+  });
   const [isLoadError, setIsLoadError] = useState(false);
   const [retryIn, setRetryIn] = useState<number | null>(null);
   const retryAttemptRef = useRef(0);
@@ -51,7 +67,10 @@ export const PhotosPage: React.FC<PhotosPageProps> = ({
       retryAttemptRef.current = 0;
       clearTimers();
     }
-    setIsLoading(true);
+    setMedia(prev => {
+      if (prev.length === 0) setIsLoading(true);
+      return prev;
+    });
     setIsLoadError(false);
     setRetryIn(null);
     try {
@@ -77,13 +96,21 @@ export const PhotosPage: React.FC<PhotosPageProps> = ({
           );
         });
         setMedia(photoOnly);
+        if (!searchQuery) {
+          try {
+            localStorage.setItem(CACHE_KEY, JSON.stringify(photoOnly));
+          } catch {}
+        }
         setIsLoadError(false);
         retryAttemptRef.current = 0;
       } else {
         throw new Error('API returned failure');
       }
     } catch {
-      setIsLoadError(true);
+      setMedia(prev => {
+        if (prev.length === 0) setIsLoadError(true);
+        return prev;
+      });
       scheduleAutoRetry();
     } finally {
       setIsLoading(false);

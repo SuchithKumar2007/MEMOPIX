@@ -108,17 +108,17 @@ export class StorageService {
   }
 
   /**
-   * Generates a short-lived signed URL for private access
+   * Generates a signed URL for private access (defaults to 7 days)
    */
-  static getSignedMediaUrl(mediaId: string, userId: string, expiresInSeconds: number = 3600): string {
+  static getSignedMediaUrl(mediaId: string, userId: string, expiresInSeconds: number = 604800): string {
     const token = generateSignedMediaToken(mediaId, userId, expiresInSeconds);
     return `/api/media/stream/${token}`;
   }
 
   /**
-   * Generates a short-lived signed thumbnail URL
+   * Generates a signed thumbnail URL (defaults to 7 days)
    */
-  static getSignedThumbnailUrl(mediaId: string, userId: string, expiresInSeconds: number = 3600): string {
+  static getSignedThumbnailUrl(mediaId: string, userId: string, expiresInSeconds: number = 604800): string {
     const token = generateSignedMediaToken(mediaId, userId, expiresInSeconds);
     return `/api/media/thumbnail-stream/${token}`;
   }

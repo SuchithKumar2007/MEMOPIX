@@ -78,15 +78,28 @@ const authLimiter = rateLimit({
   message: { success: false, message: 'Too many requests from this IP, please try again later.' }
 });
 
-// Health check endpoint
-app.get('/api/health', (_req, res) => {
-  res.json({
-    status: 'ok',
-    app: 'MEMOPIX Private Cloud',
-    version: '1.0.0',
-    quota: '5 TB (5,000,000,000,000 bytes)',
-    timestamp: new Date().toISOString()
-  });
+// Health check endpoint with Neon PostgreSQL status check
+app.get('/api/health', async (_req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({
+      status: 'ok',
+      db: 'connected (Neon PostgreSQL)',
+      app: 'MEMOPIX Private Cloud',
+      version: '1.0.0',
+      quota: '5 TB (5,000,000,000,000 bytes)',
+      timestamp: new Date().toISOString()
+    });
+  } catch (err: any) {
+    res.json({
+      status: 'ok',
+      db: 'waking_up',
+      app: 'MEMOPIX Private Cloud',
+      version: '1.0.0',
+      quota: '5 TB (5,000,000,000,000 bytes)',
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 // Mount Routes
@@ -133,6 +146,21 @@ setInterval(() => {
 
 // Initial trash purge on boot
 MediaService.autoPurgeExpiredTrash().catch(() => {});
+
+// Active Neon PostgreSQL Keep-Alive:
+// Pings database every 2.5 minutes (150s) to keep Neon serverless compute awake and connection pool fresh
+const NEON_KEEPALIVE_INTERVAL = 2.5 * 60 * 1000;
+setInterval(async () => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+  } catch (err: any) {
+    console.warn('[NEON KEEPALIVE] Reconnecting to Neon PostgreSQL:', err?.message);
+    try {
+      await prisma.$disconnect().catch(() => {});
+      await prisma.$connect().catch(() => {});
+    } catch {}
+  }
+}, NEON_KEEPALIVE_INTERVAL);
 
 // Sync and ensure default user accounts and clear any unauthorized avatars
 async function syncDatabaseUsers() {

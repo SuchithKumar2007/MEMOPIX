@@ -20,7 +20,8 @@ interface AllMediaPageProps {
 
 type FilterType = 'all' | 'photos' | 'videos' | 'audio' | 'documents';
 
-const AUTO_RETRY_DELAYS = [5000, 8000, 10000, 12000, 15000, 20000, 20000, 20000, 20000, 20000];
+const CACHE_KEY = 'memopix_cache_all_media';
+const AUTO_RETRY_DELAYS = [3000, 5000, 8000, 10000, 15000];
 
 export const AllMediaPage: React.FC<AllMediaPageProps> = ({
   searchQuery,
@@ -33,8 +34,24 @@ export const AllMediaPage: React.FC<AllMediaPageProps> = ({
   onRename,
   reloadTrigger
 }) => {
-  const [media, setMedia] = useState<MediaItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [media, setMedia] = useState<MediaItem[]>(() => {
+    try {
+      const saved = localStorage.getItem(CACHE_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  // If we already have cached items, do NOT block screen with full-page skeleton loaders
+  const [isLoading, setIsLoading] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem(CACHE_KEY);
+      const parsed = saved ? JSON.parse(saved) : [];
+      return parsed.length === 0;
+    } catch {
+      return true;
+    }
+  });
   const [isLoadError, setIsLoadError] = useState(false);
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [retryIn, setRetryIn] = useState<number | null>(null);
@@ -77,7 +94,11 @@ export const AllMediaPage: React.FC<AllMediaPageProps> = ({
       retryAttemptRef.current = 0;
       clearTimers();
     }
-    setIsLoading(true);
+    // Only show full skeleton loader if media is completely empty
+    setMedia(prev => {
+      if (prev.length === 0) setIsLoading(true);
+      return prev;
+    });
     setIsLoadError(false);
     setRetryIn(null);
     try {
@@ -87,14 +108,23 @@ export const AllMediaPage: React.FC<AllMediaPageProps> = ({
         limit: 500
       });
       if (res && res.success && res.data) {
-        setMedia(res.data.items || []);
+        const items = res.data.items || [];
+        setMedia(items);
+        if (filterType === 'all' && !searchQuery) {
+          try {
+            localStorage.setItem(CACHE_KEY, JSON.stringify(items));
+          } catch {}
+        }
         setIsLoadError(false);
         retryAttemptRef.current = 0;
       } else {
         throw new Error('API failure');
       }
     } catch {
-      setIsLoadError(true);
+      setMedia(prev => {
+        if (prev.length === 0) setIsLoadError(true);
+        return prev;
+      });
       scheduleAutoRetry(() => loadAll());
     } finally {
       setIsLoading(false);

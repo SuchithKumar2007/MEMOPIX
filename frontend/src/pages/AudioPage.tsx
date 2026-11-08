@@ -43,6 +43,9 @@ interface AudioPageProps {
   reloadTrigger: number;
 }
 
+const CACHE_KEY_AUDIO = 'memopix_cache_audio';
+const CACHE_KEY_PLAYLISTS = 'memopix_cache_playlists';
+
 export const AudioPage: React.FC<AudioPageProps> = ({
   searchQuery,
   selectedIds,
@@ -55,12 +58,34 @@ export const AudioPage: React.FC<AudioPageProps> = ({
   reloadTrigger
 }) => {
   const [activeTab, setActiveTab] = useState<'tracks' | 'playlists'>('tracks');
-  const [tracks, setTracks] = useState<MediaItem[]>([]);
-  const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const [tracks, setTracks] = useState<MediaItem[]>(() => {
+    try {
+      const saved = localStorage.getItem(CACHE_KEY_AUDIO);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [playlists, setPlaylists] = useState<Playlist[]>(() => {
+    try {
+      const saved = localStorage.getItem(CACHE_KEY_PLAYLISTS);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const [selectedPlaylist, setSelectedPlaylist] = useState<Playlist | null>(null);
   const [isCreatingPlaylist, setIsCreatingPlaylist] = useState(false);
   const [newPlaylistTitle, setNewPlaylistTitle] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem(CACHE_KEY_AUDIO);
+      const parsed = saved ? JSON.parse(saved) : [];
+      return parsed.length === 0;
+    } catch {
+      return true;
+    }
+  });
 
   // Playlist Modals
   const [isAddToPlaylistOpen, setIsAddToPlaylistOpen] = useState(false);
@@ -87,7 +112,10 @@ export const AudioPage: React.FC<AudioPageProps> = ({
   const { playTrack, currentTrack, isPlaying, isBuffering, duration, closePlayer } = useMusicPlayer();
 
   const loadAudio = async () => {
-    setIsLoading(true);
+    setTracks(prev => {
+      if (prev.length === 0) setIsLoading(true);
+      return prev;
+    });
     setIsLoadError(false);
     errorShownRef.current = false;
     try {
@@ -108,6 +136,11 @@ export const AudioPage: React.FC<AudioPageProps> = ({
 
       if (mediaRes && mediaRes.success && mediaRes.data) {
         const items = mediaRes.data.items || [];
+        if (!searchQuery) {
+          try {
+            localStorage.setItem(CACHE_KEY_AUDIO, JSON.stringify(items));
+          } catch {}
+        }
         // Apply saved custom order from localStorage
         const savedOrder = localStorage.getItem('memopix_audio_order');
         if (savedOrder) {

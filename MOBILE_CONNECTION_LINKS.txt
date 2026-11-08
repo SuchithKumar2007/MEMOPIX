@@ -1,0 +1,27 @@
+======================================================================
+               MEMOPIX 5 TB — LAPTOP & MOBILE LIVE LINKS
+======================================================================
+
+[1] ON YOUR LAPTOP (Desktop App):
+    - Simply double-click "MEMOPIX.exe" or "MEMOPIX.bat"
+    - Or open in browser: http://localhost:5000
+
+[2] ON YOUR MOBILE PHONE (Home Wi-Fi — Fastest):
+    - Connect your phone to your home Wi-Fi
+    - Open Chrome or Safari and go to:
+      ==> http://192.168.1.3:5000
+
+[3] ON YOUR MOBILE PHONE (Mobile Data / 4G / 5G / Remote):
+    - Open Chrome or Safari on your phone and go to:
+      ==> https://chevy-screw-monitors-gone.trycloudflare.com
+
+[4] HOW TO INSTALL AS A NATIVE APP ON YOUR PHONE:
+    - Open either mobile link above in Google Chrome on your phone
+    - Tap the 3 dots in the top right corner
+    - Tap "Install App" or "Add to Home Screen"
+    - An app icon called "MEMOPIX" will be added to your phone's home screen!
+    - It opens full-screen like a regular native app, connected to Neon PostgreSQL!
+
+======================================================================
+Both Laptop and Mobile share the exact same Neon PostgreSQL database & files!
+======================================================================

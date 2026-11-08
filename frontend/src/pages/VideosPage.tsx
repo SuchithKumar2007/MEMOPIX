@@ -18,7 +18,8 @@ interface VideosPageProps {
   reloadTrigger: number;
 }
 
-const AUTO_RETRY_DELAYS = [5000, 8000, 10000, 12000, 15000, 20000, 20000, 20000, 20000, 20000];
+const CACHE_KEY = 'memopix_cache_videos';
+const AUTO_RETRY_DELAYS = [3000, 5000, 8000, 10000, 15000];
 
 export const VideosPage: React.FC<VideosPageProps> = ({
   searchQuery,
@@ -31,8 +32,23 @@ export const VideosPage: React.FC<VideosPageProps> = ({
   onRename,
   reloadTrigger
 }) => {
-  const [videos, setVideos] = useState<MediaItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [videos, setVideos] = useState<MediaItem[]>(() => {
+    try {
+      const saved = localStorage.getItem(CACHE_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [isLoading, setIsLoading] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem(CACHE_KEY);
+      const parsed = saved ? JSON.parse(saved) : [];
+      return parsed.length === 0;
+    } catch {
+      return true;
+    }
+  });
   const [isLoadError, setIsLoadError] = useState(false);
   const [retryIn, setRetryIn] = useState<number | null>(null);
   const retryAttemptRef = useRef(0);
@@ -51,7 +67,10 @@ export const VideosPage: React.FC<VideosPageProps> = ({
       retryAttemptRef.current = 0;
       clearTimers();
     }
-    setIsLoading(true);
+    setVideos(prev => {
+      if (prev.length === 0) setIsLoading(true);
+      return prev;
+    });
     setIsLoadError(false);
     setRetryIn(null);
     try {
@@ -61,14 +80,23 @@ export const VideosPage: React.FC<VideosPageProps> = ({
         limit: 200
       });
       if (res && res.success && res.data) {
-        setVideos(res.data.items || []);
+        const items = res.data.items || [];
+        setVideos(items);
+        if (!searchQuery) {
+          try {
+            localStorage.setItem(CACHE_KEY, JSON.stringify(items));
+          } catch {}
+        }
         setIsLoadError(false);
         retryAttemptRef.current = 0;
       } else {
         throw new Error('API failure');
       }
     } catch {
-      setIsLoadError(true);
+      setVideos(prev => {
+        if (prev.length === 0) setIsLoadError(true);
+        return prev;
+      });
       const attempt = retryAttemptRef.current;
       if (attempt < AUTO_RETRY_DELAYS.length) {
         const delay = AUTO_RETRY_DELAYS[attempt];

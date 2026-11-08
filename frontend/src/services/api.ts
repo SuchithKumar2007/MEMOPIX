@@ -1,41 +1,40 @@
 import axios from 'axios';
 
 export const getApiBase = (): string => {
-  const customUrl = typeof window !== 'undefined' ? localStorage.getItem('memopix_custom_backend_url') : null;
-  if (customUrl && customUrl.trim()) {
-    const clean = customUrl.trim().replace(/\/$/, '');
-    return clean.endsWith('/api') ? clean : `${clean}/api`;
+  // 1. Explicit user override in localStorage (Settings -> Backend URL)
+  if (typeof window !== 'undefined') {
+    const customUrl = localStorage.getItem('memopix_custom_backend_url');
+    if (customUrl && customUrl.trim()) {
+      const clean = customUrl.trim().replace(/\/$/, '');
+      return clean.endsWith('/api') ? clean : `${clean}/api`;
+    }
   }
+
+  // 2. Explicit environment variable configured at build time (e.g. Vercel env var)
   const rawBackend = import.meta.env.VITE_API_URL || import.meta.env.VITE_BACKEND_URL;
   if (rawBackend && rawBackend.trim()) {
     const clean = rawBackend.trim().replace(/\/$/, '');
     return clean.endsWith('/api') ? clean : `${clean}/api`;
   }
 
-  // Capacitor Native Android/iOS or mobile WebViews running on localhost/capacitor origin
+  // 3. Native mobile Capacitor/Cordova app running without web origin
   if (typeof window !== 'undefined') {
-    const isCapacitor =
-      (window as any).Capacitor !== undefined ||
+    const isNativeApp =
       window.location.protocol === 'capacitor:' ||
-      (window.location.hostname === 'localhost' && window.location.port === '') ||
-      window.navigator.userAgent.includes('Capacitor') ||
-      window.navigator.userAgent.includes('wv');
-    if (isCapacitor) {
-      return 'https://memopix-backend.onrender.com/api';
+      window.location.protocol === 'ionic:';
+    if (isNativeApp) {
+      return 'http://10.0.2.2:5000/api';
     }
   }
 
-  // Production web (e.g. Vercel deployment)
-  if (import.meta.env.PROD) {
-    return 'https://memopix-backend.onrender.com/api';
-  }
-
+  // 4. In any browser environment (localhost, 127.0.0.1, LAN IP 192.168.x.x, Cloudflare tunnel, Vercel):
+  // Relative '/api' cleanly routes to the active server origin with zero CORS overhead!
   return '/api';
 };
 
 /**
  * Resolves relative media URLs (/api/media/stream/...) to direct backend origin,
- * bypassing serverless proxy limits and ensuring reliable audio/video streaming on web & mobile APK.
+ * ensuring reliable audio/video streaming and thumbnail loading on web & mobile.
  */
 export const resolveMediaUrl = (url: string | null | undefined): string => {
   if (!url) return '';
@@ -49,10 +48,10 @@ export const resolveMediaUrl = (url: string | null | undefined): string => {
   }
 
   const apiBase = getApiBase();
-  let baseOrigin = 'https://memopix-backend.onrender.com';
+  let baseOrigin = '';
   if (apiBase.startsWith('http://') || apiBase.startsWith('https://')) {
     baseOrigin = apiBase.endsWith('/api') ? apiBase.slice(0, -4) : apiBase;
-  } else if (typeof window !== 'undefined' && window.location.origin && window.location.port) {
+  } else if (typeof window !== 'undefined' && window.location.origin) {
     baseOrigin = window.location.origin;
   }
 
@@ -64,7 +63,7 @@ export const API_BASE = getApiBase();
 
 const api = axios.create({
   baseURL: API_BASE,
-  timeout: 90000, // 90 seconds (covers Render cold-start spinup of ~60s)
+  timeout: 20000, // 20 seconds
   headers: {
     'Content-Type': 'application/json'
   }
@@ -80,7 +79,7 @@ api.interceptors.request.use(config => {
   return config;
 });
 
-// Response interceptor with automatic progressive retry for cold-start 502/503/504 or network timeout
+// Response interceptor with automatic retry on cold-start or temporary network blip
 api.interceptors.response.use(
   response => response,
   async error => {
@@ -88,7 +87,7 @@ api.interceptors.response.use(
     if (!config) return Promise.reject(error);
 
     config._retryCount = config._retryCount || 0;
-    const MAX_RETRIES = 3;
+    const MAX_RETRIES = 2;
 
     const isNetworkOrColdStart =
       error.code === 'ECONNABORTED' ||
@@ -97,7 +96,7 @@ api.interceptors.response.use(
 
     if (isNetworkOrColdStart && config._retryCount < MAX_RETRIES && (config.method === 'get' || !config.method)) {
       config._retryCount += 1;
-      const delay = config._retryCount * 2500; // 2.5s, 5s, 7.5s backoff
+      const delay = config._retryCount * 1500; // 1.5s, 3s backoff
       await new Promise(res => setTimeout(res, delay));
       return api(config);
     }

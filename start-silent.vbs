@@ -1,6 +1,6 @@
 Set WshShell = CreateObject("WScript.Shell")
-Dim projectPath
-projectPath = "d:\Suchith\Project\Cloud 5TB"
+Set fso = CreateObject("Scripting.FileSystemObject")
+projectPath = fso.GetParentFolderName(WScript.ScriptFullName)
 
 ' 1. Start Unified Server silently (0 = completely hidden)
 WshShell.Run "cmd.exe /c cd /d """ & projectPath & "\backend"" && node dist/server.js", 0, False

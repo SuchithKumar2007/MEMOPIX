@@ -194,6 +194,10 @@ export class ResumableUploadService {
       throw err;
     }
 
+    if (!fs.existsSync(session.tempDir)) {
+      fs.mkdirSync(session.tempDir, { recursive: true });
+    }
+
     const chunkFileName = `part_${String(partNumber).padStart(6, '0')}`;
     const chunkPath = path.join(session.tempDir, chunkFileName);
 
@@ -370,6 +374,16 @@ export class ResumableUploadService {
     );
 
     // Create database Media record (metadata only - zero RAM overhead)
+    let fileBuffer: Buffer | null = null;
+    if (session.fileSize <= BigInt(15 * 1024 * 1024)) {
+      try {
+        const fullPath = StorageService.getAbsolutePath(processed.storagePath);
+        if (fs.existsSync(fullPath)) {
+          fileBuffer = fs.readFileSync(fullPath);
+        }
+      } catch {}
+    }
+
     const media = await prisma.media.create({
       data: {
         ownerId: userId,
@@ -382,7 +396,7 @@ export class ResumableUploadService {
         fileHash: calculatedHash,
         storagePath: processed.storagePath,
         thumbnailPath: processed.thumbnailPath,
-        fileData: null,
+        fileData: fileBuffer,
         width: processed.width,
         height: processed.height,
         duration: null,

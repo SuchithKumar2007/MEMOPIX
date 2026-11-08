@@ -8,7 +8,7 @@ class Program
 {
     static void Main()
     {
-        string projectDir = @"D:\Suchith\Project\Cloud 5TB";
+        string projectDir = AppDomain.CurrentDomain.BaseDirectory.TrimEnd('\\');
         string backendDir = Path.Combine(projectDir, "backend");
         string healthUrl = "http://localhost:5000/api/health";
         string appUrl = "http://localhost:5000";
@@ -21,8 +21,8 @@ class Program
             // Start backend silently
             ProcessStartInfo psi = new ProcessStartInfo
             {
-                FileName = "node.exe",
-                Arguments = "dist/server.js",
+                FileName = "cmd.exe",
+                Arguments = "/c node dist/server.js",
                 WorkingDirectory = backendDir,
                 WindowStyle = ProcessWindowStyle.Hidden,
                 CreateNoWindow = true,
@@ -33,20 +33,7 @@ class Program
             {
                 Process.Start(psi);
             }
-            catch
-            {
-                // Fallback to cmd
-                ProcessStartInfo cmdPsi = new ProcessStartInfo
-                {
-                    FileName = "cmd.exe",
-                    Arguments = "/c node dist/server.js",
-                    WorkingDirectory = backendDir,
-                    WindowStyle = ProcessWindowStyle.Hidden,
-                    CreateNoWindow = true,
-                    UseShellExecute = false
-                };
-                Process.Start(cmdPsi);
-            }
+            catch {}
 
             // Wait up to 6 seconds for server to come online
             for (int i = 0; i < 24; i++)

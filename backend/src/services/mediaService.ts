@@ -99,7 +99,18 @@ export class MediaService {
       file.mimetype
     );
 
-    // 4. Save Media Record to DB (Lightweight metadata only - never store multi-megabyte binary in DB)
+    // 4. Save Media Record to DB with Neon PostgreSQL persistence
+    let fileBuffer: Buffer | null = null;
+    if (file.size <= 15 * 1024 * 1024) {
+      if (file.buffer) {
+        fileBuffer = file.buffer;
+      } else if (file.path && fs.existsSync(file.path)) {
+        try {
+          fileBuffer = fs.readFileSync(file.path);
+        } catch {}
+      }
+    }
+
     const media = await prisma.media.create({
       data: {
         ownerId: userId,
@@ -112,7 +123,7 @@ export class MediaService {
         fileHash,
         storagePath: processed.storagePath,
         thumbnailPath: processed.thumbnailPath,
-        fileData: null,
+        fileData: fileBuffer,
         width: processed.width,
         height: processed.height,
         duration: null,

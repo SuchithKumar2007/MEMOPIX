@@ -8,21 +8,22 @@ echo   Starting MEMOPIX (5 TB Private Memory Cloud)
 echo ===================================================
 echo.
 
-echo Starting Backend Server on port 5000...
-start "MEMOPIX Backend" /min cmd.exe /c "cd /d "%~dp0backend" && npm.cmd run dev"
+echo Starting Unified Server on port 5000...
+start "MEMOPIX Server" /min cmd.exe /c "cd /d "%~dp0backend" && node dist/server.js"
 
 timeout /t 3 /nobreak >nul
 
-echo Starting Frontend Server on port 5173...
-start "MEMOPIX Frontend" /min cmd.exe /c "cd /d "%~dp0frontend" && npm.cmd run dev"
+echo Starting Cloudflare Tunnel for Mobile access...
+start "MEMOPIX Tunnel" /min cmd.exe /c "cd /d "%~dp0" && cloudflared.exe tunnel --url http://localhost:5000 --no-autoupdate"
 
-timeout /t 3 /nobreak >nul
+timeout /t 2 /nobreak >nul
 
-echo Opening MEMOPIX in your browser...
-start http://localhost:5173
+echo Opening MEMOPIX on your Laptop...
+start http://localhost:5000
 
 echo.
-echo MEMOPIX is running!
-echo Frontend: http://localhost:5173
-echo Backend:  http://localhost:5000
+echo ===================================================
+echo  Laptop Access: http://localhost:5000
+echo  Mobile Access (Home Wi-Fi): http://192.168.1.3:5000
+echo ===================================================
 echo.

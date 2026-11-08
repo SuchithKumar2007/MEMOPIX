@@ -9,9 +9,9 @@ services:
     startCommand: node --max-old-space-size=400 dist/server.js
     envVars:
       - key: DATABASE_URL
-        sync: false
+        value: "postgresql://neondb_owner:npg_1DGbWY2jaNvB@ep-cold-base-az6202eo-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&pgbouncer=true&connect_timeout=30&pool_timeout=30"
       - key: JWT_SECRET
-        generateValue: true
+        value: "memopix_super_secret_jwt_key_5tb_production_2026_x89a7f3"
       - key: NODE_ENV
         value: production
       - key: FRONTEND_URL
@@ -19,4 +19,4 @@ services:
       - key: STORAGE_LIMIT_BYTES
         value: "5000000000000"
       - key: JWT_EXPIRES_IN
-        value: 7d
+        value: 30d
