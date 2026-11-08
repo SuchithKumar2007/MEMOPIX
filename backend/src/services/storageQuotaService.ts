@@ -98,8 +98,15 @@ export class StorageQuotaService {
    * Recalculates storage usage directly from the user's media database records
    */
   static async recalculateUsage(userId: string): Promise<bigint> {
+    const SUCHITH_FAMILY_IDS = [
+      '2899f01c-bfe0-4114-9850-7782ab86a6af',
+      '3b0e7cf6-9a50-4dfe-ae3e-f8ff6ecd7e78',
+      '7e43e689-641d-4514-adec-372cc9f83ed3'
+    ];
+    const targetOwner = SUCHITH_FAMILY_IDS.includes(userId) ? { in: SUCHITH_FAMILY_IDS } : userId;
+
     const allUserMedia = await prisma.media.findMany({
-      where: { ownerId: userId },
+      where: { ownerId: targetOwner },
       select: { fileSize: true }
     });
 
@@ -129,9 +136,16 @@ export class StorageQuotaService {
   static async getUsageStats(userId: string): Promise<StorageUsageStats> {
     const record = await this.getOrCreateStorageRecord(userId);
     
+    const SUCHITH_FAMILY_IDS = [
+      '2899f01c-bfe0-4114-9850-7782ab86a6af',
+      '3b0e7cf6-9a50-4dfe-ae3e-f8ff6ecd7e78',
+      '7e43e689-641d-4514-adec-372cc9f83ed3'
+    ];
+    const targetOwner = SUCHITH_FAMILY_IDS.includes(userId) ? { in: SUCHITH_FAMILY_IDS } : userId;
+
     // Fetch all active and non-deleted media for breakdown
     const media = await prisma.media.findMany({
-      where: { ownerId: userId, isDeleted: false },
+      where: { ownerId: targetOwner, isDeleted: false },
       select: { mimeType: true, fileSize: true }
     });
 

@@ -17,18 +17,34 @@ export const getApiBase = (): string => {
     return clean.endsWith('/api') ? clean : `${clean}/api`;
   }
 
-  // 3. Native mobile Capacitor/Cordova app running without web origin
+  // 3. Running inside Laptop local development / unified server (localhost:5000, 127.0.0.1:5000, or LAN 192.168.x.x:5000)
   if (typeof window !== 'undefined') {
+    const host = window.location.host || '';
+    if (host.includes(':5000')) {
+      return '/api';
+    }
+
+    // Running on Vercel web domain: relative /api is proxied directly to Render
+    if (host.includes('vercel.app')) {
+      return '/api';
+    }
+
+    // Running on native mobile app (Capacitor/Cordova/Android WebView on https://localhost or capacitor://)
     const isNativeApp =
       window.location.protocol === 'capacitor:' ||
-      window.location.protocol === 'ionic:';
+      window.location.protocol === 'ionic:' ||
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1' ||
+      (window as any).Capacitor !== undefined ||
+      navigator.userAgent.includes('wv');
+
     if (isNativeApp) {
-      return 'http://10.0.2.2:5000/api';
+      // In native mobile app, ALWAYS talk directly to the cloud backend on Render!
+      return 'https://memopix-backend.onrender.com/api';
     }
   }
 
-  // 4. In any browser environment (localhost, 127.0.0.1, LAN IP 192.168.x.x, Cloudflare tunnel, Vercel):
-  // Relative '/api' cleanly routes to the active server origin with zero CORS overhead!
+  // 4. Default in web environments: relative /api
   return '/api';
 };
 

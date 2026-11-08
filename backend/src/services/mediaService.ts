@@ -19,6 +19,18 @@ export interface MediaFilterOptions {
   endDate?: string;
 }
 
+export const SUCHITH_FAMILY_IDS = [
+  '2899f01c-bfe0-4114-9850-7782ab86a6af', // suchith@2007.com
+  '3b0e7cf6-9a50-4dfe-ae3e-f8ff6ecd7e78', // suchith@gmail.com
+  '7e43e689-641d-4514-adec-372cc9f83ed3'  // suchith2007kumar@gmail.com
+];
+
+export function isOwnerOrFamily(ownerId: string, userId: string): boolean {
+  if (ownerId === userId) return true;
+  if (SUCHITH_FAMILY_IDS.includes(ownerId) && SUCHITH_FAMILY_IDS.includes(userId)) return true;
+  return false;
+}
+
 export class MediaService {
   /**
    * Upload and process a new media file (photos, videos of any size, or MP3 audio)
@@ -170,7 +182,7 @@ export class MediaService {
     } = options;
 
     const where: any = {
-      ownerId: userId
+      ownerId: SUCHITH_FAMILY_IDS.includes(userId) ? { in: SUCHITH_FAMILY_IDS } : userId
     };
 
     if (folderId !== undefined) {
@@ -291,7 +303,7 @@ export class MediaService {
       throw error;
     }
 
-    if (media.ownerId !== userId) {
+    if (!isOwnerOrFamily(media.ownerId, userId)) {
       const error: any = new Error('Forbidden. You do not have permission to access this file.');
       error.statusCode = 403;
       throw error;
@@ -309,7 +321,7 @@ export class MediaService {
     updates: { isFavorite?: boolean; isArchived?: boolean; originalName?: string; folderId?: string | null }
   ) {
     const media = await prisma.media.findUnique({ where: { id: mediaId } });
-    if (!media || media.ownerId !== userId) {
+    if (!media || !isOwnerOrFamily(media.ownerId, userId)) {
       const error: any = new Error('Media not found or forbidden.');
       error.statusCode = !media ? 404 : 403;
       throw error;
@@ -328,7 +340,7 @@ export class MediaService {
    */
   static async moveToTrash(mediaId: string, userId: string) {
     const media = await prisma.media.findUnique({ where: { id: mediaId } });
-    if (!media || media.ownerId !== userId) {
+    if (!media || !isOwnerOrFamily(media.ownerId, userId)) {
       const error: any = new Error('Media not found or forbidden.');
       error.statusCode = !media ? 404 : 403;
       throw error;
@@ -350,7 +362,7 @@ export class MediaService {
    */
   static async restoreFromTrash(mediaId: string, userId: string) {
     const media = await prisma.media.findUnique({ where: { id: mediaId } });
-    if (!media || media.ownerId !== userId) {
+    if (!media || !isOwnerOrFamily(media.ownerId, userId)) {
       const error: any = new Error('Media not found or forbidden.');
       error.statusCode = !media ? 404 : 403;
       throw error;
@@ -372,7 +384,7 @@ export class MediaService {
    */
   static async deletePermanently(mediaId: string, userId: string) {
     const media = await prisma.media.findUnique({ where: { id: mediaId } });
-    if (!media || media.ownerId !== userId) {
+    if (!media || !isOwnerOrFamily(media.ownerId, userId)) {
       const error: any = new Error('Media not found or forbidden.');
       error.statusCode = !media ? 404 : 403;
       throw error;

@@ -50,11 +50,26 @@ export const App: React.FC = () => {
 
   // Navigation & View State
   const [showSplash, setShowSplash] = useState<boolean>(true);
-  const [currentTab, setCurrentTab] = useState<string>('photos');
+  const [currentTab, setCurrentTab] = useState<string>(() => {
+    try {
+      return localStorage.getItem('memopix_active_tab') || 'all';
+    } catch {
+      return 'all';
+    }
+  });
   const [authRoute, setAuthRoute] = useState<'login' | 'register' | 'forgot-password' | 'google-signin'>('login');
   const [selectedAlbum, setSelectedAlbum] = useState<Album | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [reloadTrigger, setReloadTrigger] = useState<number>(0);
+
+  // Persist active tab across app closes / app switches
+  useEffect(() => {
+    try {
+      if (currentTab) {
+        localStorage.setItem('memopix_active_tab', currentTab);
+      }
+    } catch {}
+  }, [currentTab]);
 
   // Proactively ping backend to wake up cloud instance immediately on app open
   useEffect(() => {

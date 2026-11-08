@@ -1,0 +1,25 @@
+name: Keep MEMOPIX Cloud Backend Awake
+
+on:
+  schedule:
+    # Run every 10 minutes (cron syntax)
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  keep-awake:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Ping Render Backend
+        run: |
+          echo "Pinging MEMOPIX Render Backend..."
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 60 https://memopix-backend.onrender.com/api/health || true)
+          echo "Render Backend responded with status: $HTTP_STATUS"
+
+      - name: Ping Vercel Frontend
+        run: |
+          echo "Pinging MEMOPIX Vercel Frontend..."
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 https://memopix-tau.vercel.app/api/health || true)
+          echo "Vercel Frontend responded with status: $HTTP_STATUS"
