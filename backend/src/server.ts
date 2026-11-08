@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
 import path from 'path';
 import fs from 'fs';
+import https from 'https';
 
 const frontendDist = path.resolve(__dirname, '../../frontend/dist');
 
@@ -161,6 +162,16 @@ setInterval(async () => {
     } catch {}
   }
 }, NEON_KEEPALIVE_INTERVAL);
+
+// Active Render Web Service Keep-Alive:
+// Pings https://memopix-backend.onrender.com every 9 minutes to prevent the free tier 15-minute idle sleep
+const RENDER_KEEPALIVE_INTERVAL = 9 * 60 * 1000;
+setInterval(() => {
+  const targetUrl = process.env.RENDER_EXTERNAL_URL || 'https://memopix-backend.onrender.com';
+  https.get(`${targetUrl}/api/health`, (res) => {
+    res.resume();
+  }).on('error', () => {});
+}, RENDER_KEEPALIVE_INTERVAL);
 
 // Sync and ensure default user accounts and clear any unauthorized avatars
 async function syncDatabaseUsers() {
