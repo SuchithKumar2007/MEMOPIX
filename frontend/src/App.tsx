@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from './context/AuthContext';
 import { useToast } from './context/ToastContext';
 import { MediaItem, Album } from './types';
-import { mediaApi } from './services/api';
+import { mediaApi, getApiBase } from './services/api';
 
 // Layout & UI Components
 import { Navbar } from './components/Navbar';
@@ -55,6 +55,14 @@ export const App: React.FC = () => {
   const [selectedAlbum, setSelectedAlbum] = useState<Album | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [reloadTrigger, setReloadTrigger] = useState<number>(0);
+
+  // Proactively ping backend to wake up cloud instance immediately on app open
+  useEffect(() => {
+    try {
+      const apiBase = getApiBase();
+      fetch(`${apiBase}/health`, { signal: AbortSignal.timeout(10000) }).catch(() => {});
+    } catch {}
+  }, []);
 
   // Selection & Modal States
   const [selectedIds, setSelectedIds] = useState<string[]>([]);

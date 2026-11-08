@@ -80,22 +80,28 @@ api.interceptors.request.use(config => {
   return config;
 });
 
-// Response interceptor with automatic single retry for cold-start 502/503/504 or timeout
+// Response interceptor with automatic progressive retry for cold-start 502/503/504 or network timeout
 api.interceptors.response.use(
   response => response,
   async error => {
     const config = error.config;
-    if (
-      config &&
-      !config._retry &&
-      (config.method === 'get' || !config.method) &&
-      (error.code === 'ECONNABORTED' || !error.response || [502, 503, 504].includes(error.response?.status))
-    ) {
-      config._retry = true;
-      // Wait 3 seconds for server to finish waking up and retry once
-      await new Promise(res => setTimeout(res, 3000));
+    if (!config) return Promise.reject(error);
+
+    config._retryCount = config._retryCount || 0;
+    const MAX_RETRIES = 3;
+
+    const isNetworkOrColdStart =
+      error.code === 'ECONNABORTED' ||
+      !error.response ||
+      [500, 502, 503, 504].includes(error.response?.status);
+
+    if (isNetworkOrColdStart && config._retryCount < MAX_RETRIES && (config.method === 'get' || !config.method)) {
+      config._retryCount += 1;
+      const delay = config._retryCount * 2500; // 2.5s, 5s, 7.5s backoff
+      await new Promise(res => setTimeout(res, delay));
       return api(config);
     }
+
     if (error.response && error.response.status === 401) {
       console.warn('[MEMOPIX] Session unverified or expired');
     }

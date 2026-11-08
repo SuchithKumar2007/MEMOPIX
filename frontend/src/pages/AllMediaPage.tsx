@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutGrid, Upload, Filter } from 'lucide-react';
+import { LayoutGrid, Upload, Filter, RefreshCw } from 'lucide-react';
 import { MediaItem } from '../types';
 import { mediaApi } from '../services/api';
 import { MediaGrid } from '../components/MediaGrid';
@@ -34,26 +34,42 @@ export const AllMediaPage: React.FC<AllMediaPageProps> = ({
 }) => {
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadError, setIsLoadError] = useState(false);
   const [filterType, setFilterType] = useState<FilterType>('all');
   const { error } = useToast();
 
   const loadAll = async () => {
     setIsLoading(true);
+    setIsLoadError(false);
     try {
       const res = await mediaApi.list({
         view: filterType === 'all' ? undefined : filterType,
         search: searchQuery || undefined,
         limit: 500
       });
-      if (res.success && res.data) {
-        setMedia(res.data.items);
+      if (res && res.success && res.data) {
+        setMedia(res.data.items || []);
+        setIsLoadError(false);
+      } else if (!res?.success) {
+        setIsLoadError(true);
       }
     } catch {
-      error('Failed to load media library.');
+      setIsLoadError(true);
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Auto-retry if server was waking up from sleep
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (isLoadError) {
+      timer = setTimeout(() => {
+        loadAll();
+      }, 5500);
+    }
+    return () => clearTimeout(timer);
+  }, [isLoadError]);
 
   useEffect(() => {
     loadAll();
@@ -114,6 +130,25 @@ export const AllMediaPage: React.FC<AllMediaPageProps> = ({
       {/* Content */}
       {isLoading ? (
         <SkeletonLoader count={12} />
+      ) : isLoadError ? (
+        <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+          <div className="w-16 h-16 rounded-full bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center animate-pulse">
+            <LayoutGrid className="w-8 h-8 text-cyan-400" />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-white mb-1">Connecting to 5 TB Private Vault…</p>
+            <p className="text-xs text-gray-400 max-w-xs">
+              Backend cloud is waking up. Synchronizing files in a moment…
+            </p>
+          </div>
+          <button
+            onClick={() => loadAll()}
+            className="flex items-center gap-1.5 px-5 py-2 bg-gradient-to-r from-brand-500 to-cyan-500 hover:opacity-90 text-white font-bold text-xs rounded-xl shadow-md active:scale-95 transition-all"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Retry Sync</span>
+          </button>
+        </div>
       ) : media.length === 0 ? (
         <EmptyState
           icon={LayoutGrid}

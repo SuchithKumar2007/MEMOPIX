@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Video, Play } from 'lucide-react';
+import { Video, Play, RefreshCw } from 'lucide-react';
 import { MediaItem } from '../types';
 import { mediaApi } from '../services/api';
 import { MediaGrid } from '../components/MediaGrid';
@@ -32,25 +32,41 @@ export const VideosPage: React.FC<VideosPageProps> = ({
 }) => {
   const [videos, setVideos] = useState<MediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadError, setIsLoadError] = useState(false);
   const { error } = useToast();
 
   const loadVideos = async () => {
     setIsLoading(true);
+    setIsLoadError(false);
     try {
       const res = await mediaApi.list({
         view: 'videos',
         search: searchQuery || undefined,
         limit: 200
       });
-      if (res.success && res.data) {
-        setVideos(res.data.items);
+      if (res && res.success && res.data) {
+        setVideos(res.data.items || []);
+        setIsLoadError(false);
+      } else if (!res?.success) {
+        setIsLoadError(true);
       }
     } catch {
-      error('Failed to load videos.');
+      setIsLoadError(true);
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Auto-retry when server is waking up
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (isLoadError) {
+      timer = setTimeout(() => {
+        loadVideos();
+      }, 5500);
+    }
+    return () => clearTimeout(timer);
+  }, [isLoadError]);
 
   useEffect(() => {
     loadVideos();
@@ -71,6 +87,25 @@ export const VideosPage: React.FC<VideosPageProps> = ({
 
       {isLoading ? (
         <SkeletonLoader count={12} />
+      ) : isLoadError ? (
+        <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+          <div className="w-16 h-16 rounded-full bg-blue-500/10 border border-blue-500/30 flex items-center justify-center animate-pulse">
+            <Video className="w-8 h-8 text-blue-400" />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-white mb-1">Connecting to 5 TB Video Vault…</p>
+            <p className="text-xs text-gray-400 max-w-xs">
+              Backend is waking up. Synchronizing your video library in a moment…
+            </p>
+          </div>
+          <button
+            onClick={() => loadVideos()}
+            className="flex items-center gap-1.5 px-5 py-2 bg-gradient-to-r from-brand-500 to-cyan-500 hover:opacity-90 text-white font-bold text-xs rounded-xl shadow-md active:scale-95 transition-all"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Retry</span>
+          </button>
+        </div>
       ) : videos.length === 0 ? (
         <EmptyState
           icon={Video}
