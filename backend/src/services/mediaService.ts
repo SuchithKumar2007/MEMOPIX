@@ -409,8 +409,9 @@ export class MediaService {
    * Empty trash for user
    */
   static async emptyTrash(userId: string) {
+    const targetOwner = SUCHITH_FAMILY_IDS.includes(userId) ? { in: SUCHITH_FAMILY_IDS } : userId;
     const trashedMedia = await prisma.media.findMany({
-      where: { ownerId: userId, isDeleted: true }
+      where: { ownerId: targetOwner, isDeleted: true }
     });
 
     let freedBytes = 0;
@@ -423,7 +424,7 @@ export class MediaService {
     }
 
     await prisma.media.deleteMany({
-      where: { ownerId: userId, isDeleted: true }
+      where: { ownerId: targetOwner, isDeleted: true }
     });
 
     if (freedBytes > 0) {
@@ -479,10 +480,11 @@ export class MediaService {
     action: 'favorite' | 'unfavorite' | 'archive' | 'unarchive' | 'trash' | 'restore' | 'delete_permanent',
     mediaIds: string[]
   ) {
+    const targetOwner = SUCHITH_FAMILY_IDS.includes(userId) ? { in: SUCHITH_FAMILY_IDS } : userId;
     const items = await prisma.media.findMany({
       where: {
         id: { in: mediaIds },
-        ownerId: userId
+        ownerId: targetOwner
       }
     });
 
@@ -532,7 +534,7 @@ export class MediaService {
         for (const item of items) {
           await StorageService.deleteFile(item.storagePath);
           if (item.thumbnailPath) await StorageService.deleteFile(item.thumbnailPath);
-          await StorageQuotaService.updateUsage(userId, -Number(item.fileSize));
+          await StorageQuotaService.updateUsage(item.ownerId, -Number(item.fileSize));
         }
         await prisma.media.deleteMany({
           where: { id: { in: validIds } }

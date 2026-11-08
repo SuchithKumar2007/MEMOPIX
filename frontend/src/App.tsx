@@ -313,11 +313,33 @@ export const App: React.FC = () => {
     setIsRenameModalOpen(true);
   };
 
+  const removeIdsFromAllCaches = (ids: string[]) => {
+    const cacheKeys = [
+      'memopix_cache_all_media',
+      'memopix_cache_photos',
+      'memopix_cache_videos',
+      'memopix_cache_audio'
+    ];
+    for (const key of cacheKeys) {
+      try {
+        const saved = localStorage.getItem(key);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          const filtered = parsed.filter((item: any) => !ids.includes(item.id));
+          localStorage.setItem(key, JSON.stringify(filtered));
+        }
+      } catch {}
+    }
+  };
+
   const handleBulkTrash = async () => {
     try {
-      await mediaApi.bulkAction('trash', selectedIds);
-      success(`Moved ${selectedIds.length} item(s) to Trash.`);
+      const idsToDelete = [...selectedIds];
+      removeIdsFromAllCaches(idsToDelete);
       handleClearSelection();
+      triggerReload();
+      await mediaApi.bulkAction('trash', idsToDelete);
+      success(`Moved ${idsToDelete.length} item(s) to Trash.`);
       await refreshStorage();
       triggerReload();
     } catch {
