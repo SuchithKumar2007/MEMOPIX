@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Image as ImageIcon, Upload, Filter, Calendar, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Image as ImageIcon, RefreshCw, Loader2 } from 'lucide-react';
 import { MediaItem } from '../types';
 import { mediaApi } from '../services/api';
 import { MediaGrid } from '../components/MediaGrid';
 import { SkeletonLoader } from '../components/SkeletonLoader';
 import { EmptyState } from '../components/EmptyState';
-import { useToast } from '../context/ToastContext';
 
 interface PhotosPageProps {
   searchQuery: string;
@@ -18,6 +17,8 @@ interface PhotosPageProps {
   onRename?: (media: MediaItem) => void;
   reloadTrigger: number;
 }
+
+const AUTO_RETRY_DELAYS = [5000, 8000, 10000, 12000, 15000, 20000, 20000, 20000, 20000, 20000]; // up to ~2.5 min total
 
 export const PhotosPage: React.FC<PhotosPageProps> = ({
   searchQuery,
@@ -33,15 +34,26 @@ export const PhotosPage: React.FC<PhotosPageProps> = ({
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadError, setIsLoadError] = useState(false);
-  const errorShownRef = useRef(false);
-  const { error } = useToast();
+  const [retryIn, setRetryIn] = useState<number | null>(null);
+  const retryAttemptRef = useRef(0);
+  const retryTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const countdownRef = useRef<NodeJS.Timeout | null>(null);
 
-  const [retryCountdown, setRetryCountdown] = useState<number | null>(null);
+  const clearTimers = () => {
+    if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    retryTimerRef.current = null;
+    countdownRef.current = null;
+  };
 
-  const loadPhotos = async (isManual = false) => {
+  const loadPhotos = useCallback(async (manual = false) => {
+    if (manual) {
+      retryAttemptRef.current = 0;
+      clearTimers();
+    }
     setIsLoading(true);
     setIsLoadError(false);
-    setRetryCountdown(null);
+    setRetryIn(null);
     try {
       const res = await mediaApi.list({
         view: 'photos',
@@ -49,23 +61,16 @@ export const PhotosPage: React.FC<PhotosPageProps> = ({
         limit: 200
       });
       if (res.success && res.data) {
-        // Enforce strict photo filtering: only image files belong in Photos
         const photoOnly = res.data.items.filter((item: MediaItem) => {
           const mime = (item.mimeType || '').toLowerCase();
           const name = (item.originalName || item.fileName || '').toLowerCase();
-
-          // Explicit exclusion of audio, video, documents, archives
           if (
             mime.startsWith('audio/') ||
             mime.startsWith('video/') ||
             mime.startsWith('application/') ||
             mime.startsWith('text/') ||
-            /\.(mp3|wav|ogg|m4a|aac|flac|wma|opus|mid|midi|mp4|webm|mkv|mov|avi|wmv|3gp|pdf|doc|docx|xls|xlsx|ppt|pptx|txt|zip|rar|tar|gz|7z)$/i.test(name)
-          ) {
-            return false;
-          }
-
-          // Inclusion of images only
+            /\.(mp3|wav|ogg|m4a|aac|flac|wma|opus|mp4|webm|mkv|mov|avi|wmv|3gp|pdf|doc|docx|xls|xlsx|ppt|pptx|txt|zip|rar|tar|gz|7z)$/i.test(name)
+          ) return false;
           return (
             mime.startsWith('image/') ||
             /\.(jpe?g|png|gif|webp|svg|bmp|heic|heif|tiff?|raw|cr2|nef|arw|dng)$/i.test(name)
@@ -73,42 +78,53 @@ export const PhotosPage: React.FC<PhotosPageProps> = ({
         });
         setMedia(photoOnly);
         setIsLoadError(false);
-      } else if (!res?.success) {
-        setIsLoadError(true);
+        retryAttemptRef.current = 0;
+      } else {
+        throw new Error('API returned failure');
       }
-    } catch (err: any) {
+    } catch {
       setIsLoadError(true);
-      if (!errorShownRef.current) {
-        errorShownRef.current = true;
-      }
+      scheduleAutoRetry();
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [searchQuery]);
 
-  // Auto-retry when server is waking up
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (isLoadError) {
-      timer = setTimeout(() => {
-        loadPhotos();
-      }, 6500);
-    }
-    return () => clearTimeout(timer);
-  }, [isLoadError]);
+  const scheduleAutoRetry = useCallback(() => {
+    const attempt = retryAttemptRef.current;
+    if (attempt >= AUTO_RETRY_DELAYS.length) return; // give up after max retries
+    const delay = AUTO_RETRY_DELAYS[attempt];
+    retryAttemptRef.current = attempt + 1;
+
+    let remaining = Math.round(delay / 1000);
+    setRetryIn(remaining);
+
+    countdownRef.current = setInterval(() => {
+      remaining -= 1;
+      setRetryIn(remaining > 0 ? remaining : null);
+      if (remaining <= 0 && countdownRef.current) {
+        clearInterval(countdownRef.current);
+        countdownRef.current = null;
+      }
+    }, 1000);
+
+    retryTimerRef.current = setTimeout(() => {
+      loadPhotos();
+    }, delay);
+  }, [loadPhotos]);
 
   useEffect(() => {
+    retryAttemptRef.current = 0;
+    clearTimers();
     loadPhotos();
+    return clearTimers;
   }, [searchQuery, reloadTrigger]);
 
   return (
     <div className="space-y-6">
-      {/* Top Header info */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">
-            Photos
-          </h1>
+          <h1 className="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">Photos</h1>
           <p className="text-xs text-gray-500 dark:text-gray-400">
             {media.length} {media.length === 1 ? 'memory' : 'memories'} in timeline
           </p>
@@ -125,22 +141,24 @@ export const PhotosPage: React.FC<PhotosPageProps> = ({
           <div>
             <p className="text-sm font-bold text-white mb-1">Server is waking up…</p>
             <p className="text-xs text-gray-400 max-w-xs">
-              The backend cloud is connecting. Please wait a moment and tap retry.
+              The backend cloud is connecting. {retryIn !== null
+                ? `Auto-retrying in ${retryIn}s…`
+                : 'Retrying now…'}
             </p>
           </div>
           <button
-            onClick={() => { errorShownRef.current = false; loadPhotos(); }}
+            onClick={() => loadPhotos(true)}
             className="flex items-center gap-1.5 px-5 py-2 bg-gradient-to-r from-brand-500 to-cyan-500 hover:opacity-90 text-white font-bold text-xs rounded-xl shadow-md active:scale-95 transition-all"
           >
-            <RefreshCw className="w-3.5 h-3.5" />
-            <span>Retry</span>
+            {retryIn !== null ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+            <span>{retryIn !== null ? `Retry in ${retryIn}s` : 'Retry Now'}</span>
           </button>
         </div>
       ) : media.length === 0 ? (
         <EmptyState
           icon={ImageIcon}
           title="Your memories start here."
-          description="Upload your first photo or video to begin organizing your 5 TB private gallery."
+          description="Upload your first photo to begin organizing your 5 TB private gallery."
           actionText="Upload Memories"
           onAction={onOpenUpload}
         />

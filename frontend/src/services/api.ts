@@ -64,7 +64,7 @@ export const API_BASE = getApiBase();
 
 const api = axios.create({
   baseURL: API_BASE,
-  timeout: 60000, // 60 seconds (covers Render cold-start spinup)
+  timeout: 90000, // 90 seconds (covers Render cold-start spinup of ~60s)
   headers: {
     'Content-Type': 'application/json'
   }
@@ -243,11 +243,14 @@ export const mediaApi = {
     return res.data;
   },
 
-  upload: async (file: File, forceDuplicate: boolean = false, onProgress?: (pct: number) => void) => {
+  upload: async (file: File, forceDuplicate: boolean = false, onProgress?: (pct: number) => void, folderId?: string | null) => {
     const formData = new FormData();
     formData.append('file', file);
     if (forceDuplicate) {
       formData.append('forceDuplicate', 'true');
+    }
+    if (folderId) {
+      formData.append('folderId', folderId);
     }
 
     const res = await api.post('/media/upload', formData, {

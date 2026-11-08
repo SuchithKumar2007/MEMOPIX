@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { Video, Play, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Video, RefreshCw, Loader2 } from 'lucide-react';
 import { MediaItem } from '../types';
 import { mediaApi } from '../services/api';
 import { MediaGrid } from '../components/MediaGrid';
 import { SkeletonLoader } from '../components/SkeletonLoader';
 import { EmptyState } from '../components/EmptyState';
-import { useToast } from '../context/ToastContext';
 
 interface VideosPageProps {
   searchQuery: string;
@@ -18,6 +17,8 @@ interface VideosPageProps {
   onRename?: (media: MediaItem) => void;
   reloadTrigger: number;
 }
+
+const AUTO_RETRY_DELAYS = [5000, 8000, 10000, 12000, 15000, 20000, 20000, 20000, 20000, 20000];
 
 export const VideosPage: React.FC<VideosPageProps> = ({
   searchQuery,
@@ -33,11 +34,26 @@ export const VideosPage: React.FC<VideosPageProps> = ({
   const [videos, setVideos] = useState<MediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadError, setIsLoadError] = useState(false);
-  const { error } = useToast();
+  const [retryIn, setRetryIn] = useState<number | null>(null);
+  const retryAttemptRef = useRef(0);
+  const retryTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const countdownRef = useRef<NodeJS.Timeout | null>(null);
 
-  const loadVideos = async () => {
+  const clearTimers = () => {
+    if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    retryTimerRef.current = null;
+    countdownRef.current = null;
+  };
+
+  const loadVideos = useCallback(async (manual = false) => {
+    if (manual) {
+      retryAttemptRef.current = 0;
+      clearTimers();
+    }
     setIsLoading(true);
     setIsLoadError(false);
+    setRetryIn(null);
     try {
       const res = await mediaApi.list({
         view: 'videos',
@@ -47,38 +63,45 @@ export const VideosPage: React.FC<VideosPageProps> = ({
       if (res && res.success && res.data) {
         setVideos(res.data.items || []);
         setIsLoadError(false);
-      } else if (!res?.success) {
-        setIsLoadError(true);
+        retryAttemptRef.current = 0;
+      } else {
+        throw new Error('API failure');
       }
     } catch {
       setIsLoadError(true);
+      const attempt = retryAttemptRef.current;
+      if (attempt < AUTO_RETRY_DELAYS.length) {
+        const delay = AUTO_RETRY_DELAYS[attempt];
+        retryAttemptRef.current = attempt + 1;
+        let remaining = Math.round(delay / 1000);
+        setRetryIn(remaining);
+        countdownRef.current = setInterval(() => {
+          remaining -= 1;
+          setRetryIn(remaining > 0 ? remaining : null);
+          if (remaining <= 0 && countdownRef.current) {
+            clearInterval(countdownRef.current);
+            countdownRef.current = null;
+          }
+        }, 1000);
+        retryTimerRef.current = setTimeout(() => loadVideos(), delay);
+      }
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // Auto-retry when server is waking up
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (isLoadError) {
-      timer = setTimeout(() => {
-        loadVideos();
-      }, 5500);
-    }
-    return () => clearTimeout(timer);
-  }, [isLoadError]);
+  }, [searchQuery]);
 
   useEffect(() => {
+    retryAttemptRef.current = 0;
+    clearTimers();
     loadVideos();
+    return clearTimers;
   }, [searchQuery, reloadTrigger]);
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">
-            Videos
-          </h1>
+          <h1 className="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">Videos</h1>
           <p className="text-xs text-gray-500 dark:text-gray-400">
             {videos.length} {videos.length === 1 ? 'video' : 'videos'} in library
           </p>
@@ -93,17 +116,19 @@ export const VideosPage: React.FC<VideosPageProps> = ({
             <Video className="w-8 h-8 text-blue-400" />
           </div>
           <div>
-            <p className="text-sm font-bold text-white mb-1">Connecting to 5 TB Video Vault…</p>
+            <p className="text-sm font-bold text-white mb-1">Server is waking up…</p>
             <p className="text-xs text-gray-400 max-w-xs">
-              Backend is waking up. Synchronizing your video library in a moment…
+              The backend cloud is connecting. {retryIn !== null
+                ? `Auto-retrying in ${retryIn}s…`
+                : 'Retrying now…'}
             </p>
           </div>
           <button
-            onClick={() => loadVideos()}
+            onClick={() => loadVideos(true)}
             className="flex items-center gap-1.5 px-5 py-2 bg-gradient-to-r from-brand-500 to-cyan-500 hover:opacity-90 text-white font-bold text-xs rounded-xl shadow-md active:scale-95 transition-all"
           >
-            <RefreshCw className="w-3.5 h-3.5" />
-            <span>Retry</span>
+            {retryIn !== null ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+            <span>{retryIn !== null ? `Retry in ${retryIn}s` : 'Retry Now'}</span>
           </button>
         </div>
       ) : videos.length === 0 ? (

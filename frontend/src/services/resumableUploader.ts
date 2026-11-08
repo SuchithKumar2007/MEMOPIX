@@ -1,4 +1,4 @@
-import { uploadApi } from './api';
+import { uploadApi, mediaApi } from './api';
 import { UploadQueueItem } from '../types';
 
 const DB_NAME = 'memopix_resumable_db';
@@ -359,6 +359,40 @@ class ResumableUploader {
     item.status = 'uploading';
     item.error = undefined;
     this.notify();
+
+    // Fast direct single-stream upload for files <= 25MB (photos, music, audio, short videos)
+    if (file.size <= 25 * 1024 * 1024 && !item.sessionId) {
+      try {
+        const res = await mediaApi.upload(
+          file,
+          false,
+          (pct) => {
+            item.progress = pct;
+            item.uploadedBytes = Math.round((pct / 100) * file.size);
+            this.notify();
+          },
+          item.folderId
+        );
+
+        if (res?.data?.duplicateDetected) {
+          item.status = 'duplicate';
+          item.duplicateInfo = res.data.existingMedia;
+          item.error = 'Duplicate file detected';
+          this.notify();
+          return;
+        }
+
+        item.status = 'completed';
+        item.progress = 100;
+        item.uploadedBytes = file.size;
+        // Remove from DB (direct upload complete, no session to resume)
+        await this.removeFromDb(item.id).catch(() => {});
+        this.notify();
+        return;
+      } catch (directErr: any) {
+        console.warn('[DirectUploadFallback] Direct upload failed, falling back to chunked:', directErr);
+      }
+    }
 
     try {
       // 1. Initiate session on backend if not initiated yet
