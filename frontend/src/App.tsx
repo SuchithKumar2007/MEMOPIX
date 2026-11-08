@@ -315,10 +315,10 @@ export const App: React.FC = () => {
 
   const removeIdsFromAllCaches = (ids: string[]) => {
     const cacheKeys = [
-      'memopix_cache_all_media',
-      'memopix_cache_photos',
-      'memopix_cache_videos',
-      'memopix_cache_audio'
+      'memopix_cache_all_media_v2',
+      'memopix_cache_photos_v2',
+      'memopix_cache_videos_v2',
+      'memopix_cache_audio_v2'
     ];
     for (const key of cacheKeys) {
       try {

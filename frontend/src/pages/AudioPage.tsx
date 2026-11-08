@@ -43,7 +43,7 @@ interface AudioPageProps {
   reloadTrigger: number;
 }
 
-const CACHE_KEY_AUDIO = 'memopix_cache_audio';
+const CACHE_KEY_AUDIO = 'memopix_cache_audio_v2';
 const CACHE_KEY_PLAYLISTS = 'memopix_cache_playlists';
 
 export const AudioPage: React.FC<AudioPageProps> = ({

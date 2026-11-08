@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import fs from 'fs';
 import path from 'path';
 import { AuthenticatedRequest } from '../middleware/auth.js';
-import { MediaService } from '../services/mediaService.js';
+import { MediaService, isOwnerOrFamily, SUCHITH_FAMILY_IDS } from '../services/mediaService.js';
 import { StorageService } from '../services/storageService.js';
 import { verifySignedMediaToken } from '../utils/token.js';
 import { bulkActionSchema } from '../validators/mediaValidators.js';
@@ -272,7 +272,7 @@ export class MediaController {
 
       const mediaId = String(req.params.id);
       const media = await prisma.media.findUnique({ where: { id: mediaId } });
-      if (!media || media.ownerId !== req.user.id) {
+      if (!media || !isOwnerOrFamily(media.ownerId, req.user.id)) {
         res.status(403).json({ success: false, message: 'Forbidden. You do not have permission to download this file.' });
         return;
       }
@@ -323,7 +323,7 @@ export class MediaController {
       }
 
       const media = await prisma.media.findUnique({ where: { id: verified.mediaId } });
-      if (!media || media.ownerId !== verified.userId) {
+      if (!media || !isOwnerOrFamily(media.ownerId, verified.userId)) {
         res.status(403).send('Forbidden: Media access denied.');
         return;
       }
@@ -443,7 +443,7 @@ export class MediaController {
       }
 
       const media = await prisma.media.findUnique({ where: { id: verified.mediaId } });
-      if (!media || media.ownerId !== verified.userId) {
+      if (!media || !isOwnerOrFamily(media.ownerId, verified.userId)) {
         res.status(403).send('Forbidden: Thumbnail access denied.');
         return;
       }

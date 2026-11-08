@@ -18,7 +18,7 @@ interface VideosPageProps {
   reloadTrigger: number;
 }
 
-const CACHE_KEY = 'memopix_cache_videos';
+const CACHE_KEY = 'memopix_cache_videos_v2';
 const AUTO_RETRY_DELAYS = [3000, 5000, 8000, 10000, 15000];
 
 export const VideosPage: React.FC<VideosPageProps> = ({

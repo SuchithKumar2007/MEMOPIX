@@ -20,7 +20,7 @@ interface AllMediaPageProps {
 
 type FilterType = 'all' | 'photos' | 'videos' | 'audio' | 'documents';
 
-const CACHE_KEY = 'memopix_cache_all_media';
+const CACHE_KEY = 'memopix_cache_all_media_v2';
 const AUTO_RETRY_DELAYS = [3000, 5000, 8000, 10000, 15000];
 
 export const AllMediaPage: React.FC<AllMediaPageProps> = ({
