@@ -113,12 +113,19 @@ export class MediaService {
 
     // 4. Save Media Record to DB with Neon PostgreSQL persistence
     let fileBuffer: Buffer | null = null;
-    if (file.size <= 15 * 1024 * 1024) {
+    if (file.size <= 25 * 1024 * 1024) {
       if (file.buffer) {
         fileBuffer = file.buffer;
       } else if (file.path && fs.existsSync(file.path)) {
         try {
           fileBuffer = fs.readFileSync(file.path);
+        } catch {}
+      } else if (processed?.storagePath) {
+        try {
+          const absPath = StorageService.getAbsolutePath(processed.storagePath);
+          if (fs.existsSync(absPath)) {
+            fileBuffer = fs.readFileSync(absPath);
+          }
         } catch {}
       }
     }

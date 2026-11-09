@@ -69,15 +69,28 @@ export const discoverBackend = async (): Promise<void> => {
         navigator.userAgent.includes('wv')
       );
     if (!isNativeApp) return;
-    const res = await fetch('https://memopix-tau.vercel.app/api/tunnel-url', { signal: AbortSignal.timeout(8000) });
+
+    // Fast check: Are we on the same home WiFi as the laptop? (192.168.1.3)
+    try {
+      const wifiProbe = await fetch('http://192.168.1.3:5000/api/health', { signal: AbortSignal.timeout(1500) });
+      if (wifiProbe.ok) {
+        localStorage.setItem('memopix_tunnel_url', 'http://192.168.1.3:5000');
+        console.log('[MEMOPIX] Connected to Laptop directly over WiFi');
+        return;
+      }
+    } catch {}
+
+    // Outside home WiFi: Fetch current Cloudflare tunnel URL via Vercel
+    const res = await fetch('https://memopix-tau.vercel.app/api/tunnel-url', { signal: AbortSignal.timeout(6000) });
     if (res.ok) {
       const data = await res.json();
       if (data?.tunnelUrl) {
         localStorage.setItem('memopix_tunnel_url', data.tunnelUrl);
+        console.log('[MEMOPIX] Connected via Cloudflare Tunnel:', data.tunnelUrl);
       }
     }
   } catch {
-    // Silent fail — will use Vercel proxy fallback
+    // Silent fallback to Vercel proxy
   }
 };
 

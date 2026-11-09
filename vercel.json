@@ -7,7 +7,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://barn-foo-baskets-liz.trycloudflare.com/api/$1"
+      "destination": "https://organ-marketing-sing-fine.trycloudflare.com/api/$1"
     },
     {
       "source": "/(.*)",
