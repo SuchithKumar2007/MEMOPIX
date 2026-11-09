@@ -22,12 +22,12 @@ timeout /t 4 /nobreak >nul
 :: Start Cloudflare tunnel and capture URL to log file
 echo [2/3] Starting Cloudflare tunnel...
 del /f /q "%LOGFILE%" >nul 2>&1
-start "Cloudflare Tunnel" /MIN cmd /c "cd /d %PROJECT% && cloudflared.exe tunnel --url http://localhost:5000 2>&1 | tee "%LOGFILE%""
+start "Cloudflare Tunnel" /MIN cmd /c "cd /d %PROJECT% && cloudflared.exe tunnel --url http://localhost:5000 > "%LOGFILE%" 2>&1"
 echo Waiting for tunnel URL...
-timeout /t 12 /nobreak >nul
+timeout /t 10 /nobreak >nul
 
-:: Extract tunnel URL from log
-for /f "tokens=5" %%u in ('findstr /c:"trycloudflare.com" "%LOGFILE%" 2^>nul') do (
+:: Extract tunnel URL from log using powershell regex
+for /f "usebackq tokens=*" %%u in (`powershell -Command "$m = (Get-Content '%LOGFILE%' -ErrorAction SilentlyContinue) | Select-String -Pattern 'https://[a-zA-Z0-9-]+\.trycloudflare\.com'; if ($m) { $m.Matches[0].Value }"`) do (
   set TUNNEL_URL=%%u
 )
 
