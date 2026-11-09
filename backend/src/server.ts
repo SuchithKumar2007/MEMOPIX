@@ -163,15 +163,26 @@ setInterval(async () => {
   }
 }, NEON_KEEPALIVE_INTERVAL);
 
-// Active Render Web Service Keep-Alive:
-// Pings https://memopix-backend.onrender.com every 9 minutes to prevent the free tier 15-minute idle sleep
-const RENDER_KEEPALIVE_INTERVAL = 9 * 60 * 1000;
-setInterval(() => {
-  const targetUrl = process.env.RENDER_EXTERNAL_URL || 'https://memopix-backend.onrender.com';
-  https.get(`${targetUrl}/api/health`, (res) => {
-    res.resume();
-  }).on('error', () => {});
-}, RENDER_KEEPALIVE_INTERVAL);
+// Current public tunnel URL (set at startup by start script)
+let currentTunnelUrl: string = process.env.TUNNEL_URL || '';
+
+// Endpoint so mobile APK can discover current tunnel URL
+app.get('/api/tunnel-url', (_req, res) => {
+  res.json({ tunnelUrl: currentTunnelUrl || null });
+});
+
+// Allow the start script to update tunnel URL at runtime
+app.post('/api/tunnel-url', express.json(), (req, res) => {
+  const { tunnelUrl, secret } = req.body || {};
+  if (secret !== (process.env.TUNNEL_SECRET || 'memopix-tunnel-secret-2024')) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  if (tunnelUrl) {
+    currentTunnelUrl = tunnelUrl;
+    console.log(`[TUNNEL] Public URL updated: ${tunnelUrl}`);
+  }
+  res.json({ ok: true, tunnelUrl: currentTunnelUrl });
+});
 
 // Sync and ensure default user accounts and clear any unauthorized avatars
 async function syncDatabaseUsers() {

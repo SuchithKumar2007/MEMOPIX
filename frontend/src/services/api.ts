@@ -24,12 +24,12 @@ export const getApiBase = (): string => {
       return '/api';
     }
 
-    // Running on Vercel web domain: relative /api is proxied directly to Render
+    // Running on Vercel web domain: relative /api proxied to laptop via Cloudflare tunnel
     if (host.includes('vercel.app')) {
       return '/api';
     }
 
-    // Running on native mobile app (Capacitor/Cordova/Android WebView on https://localhost or capacitor://)
+    // Running on native mobile APK (Android WebView / Capacitor)
     const isNativeApp =
       window.location.protocol === 'capacitor:' ||
       window.location.protocol === 'ionic:' ||
@@ -39,14 +39,48 @@ export const getApiBase = (): string => {
       navigator.userAgent.includes('wv');
 
     if (isNativeApp) {
-      // In native mobile app, ALWAYS talk directly to the cloud backend on Render!
-      return 'https://memopix-backend.onrender.com/api';
+      // Check localStorage for auto-discovered tunnel URL (set by discoverBackend())
+      const tunnelUrl = localStorage.getItem('memopix_tunnel_url');
+      if (tunnelUrl && tunnelUrl.trim()) {
+        const t = tunnelUrl.trim();
+        return t.endsWith('/api') ? t : `${t}/api`;
+      }
+      // Fallback: Vercel frontend proxies to laptop tunnel
+      return 'https://memopix-tau.vercel.app/api';
     }
   }
 
   // 4. Default in web environments: relative /api
   return '/api';
 };
+
+/**
+ * Auto-discover backend tunnel URL for mobile APK.
+ * Tries Vercel frontend proxy to read tunnel URL registered by laptop start script.
+ * Call once on app start in native mobile context.
+ */
+export const discoverBackend = async (): Promise<void> => {
+  try {
+    const isNativeApp =
+      typeof window !== 'undefined' && (
+        window.location.protocol === 'capacitor:' ||
+        window.location.protocol === 'ionic:' ||
+        (window as any).Capacitor !== undefined ||
+        navigator.userAgent.includes('wv')
+      );
+    if (!isNativeApp) return;
+    const res = await fetch('https://memopix-tau.vercel.app/api/tunnel-url', { signal: AbortSignal.timeout(8000) });
+    if (res.ok) {
+      const data = await res.json();
+      if (data?.tunnelUrl) {
+        localStorage.setItem('memopix_tunnel_url', data.tunnelUrl);
+      }
+    }
+  } catch {
+    // Silent fail — will use Vercel proxy fallback
+  }
+};
+
 
 /**
  * Resolves relative media URLs (/api/media/stream/...) to direct backend origin,

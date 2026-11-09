@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from './context/AuthContext';
 import { useToast } from './context/ToastContext';
 import { MediaItem, Album } from './types';
-import { mediaApi, getApiBase } from './services/api';
+import { mediaApi, getApiBase, discoverBackend } from './services/api';
 
 // Layout & UI Components
 import { Navbar } from './components/Navbar';
@@ -73,6 +73,8 @@ export const App: React.FC = () => {
 
   // Proactively ping backend to wake up cloud instance immediately on app open
   useEffect(() => {
+    // On mobile APK, discover current tunnel URL from laptop
+    discoverBackend().catch(() => {});
     try {
       const apiBase = getApiBase();
       fetch(`${apiBase}/health`, { signal: AbortSignal.timeout(10000) }).catch(() => {});
