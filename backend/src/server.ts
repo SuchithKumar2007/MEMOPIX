@@ -152,8 +152,8 @@ setInterval(() => {
 MediaService.autoPurgeExpiredTrash().catch(() => {});
 
 // Active Neon PostgreSQL Keep-Alive:
-// Pings database every 2.5 minutes (150s) to keep Neon serverless compute awake and connection pool fresh
-const NEON_KEEPALIVE_INTERVAL = 2.5 * 60 * 1000;
+// Pings database every 60s to ensure Neon serverless compute NEVER goes cold/sleeps
+const NEON_KEEPALIVE_INTERVAL = 60 * 1000;
 setInterval(async () => {
   try {
     await prisma.$queryRaw`SELECT 1`;

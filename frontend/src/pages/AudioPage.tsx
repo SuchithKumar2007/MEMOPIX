@@ -80,8 +80,7 @@ export const AudioPage: React.FC<AudioPageProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(() => {
     try {
       const saved = localStorage.getItem(CACHE_KEY_AUDIO);
-      const parsed = saved ? JSON.parse(saved) : [];
-      return parsed.length === 0;
+      return saved === null;
     } catch {
       return true;
     }

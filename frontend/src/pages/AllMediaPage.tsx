@@ -46,8 +46,7 @@ export const AllMediaPage: React.FC<AllMediaPageProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(() => {
     try {
       const saved = localStorage.getItem(CACHE_KEY);
-      const parsed = saved ? JSON.parse(saved) : [];
-      return parsed.length === 0;
+      return saved === null;
     } catch {
       return true;
     }
@@ -94,9 +93,9 @@ export const AllMediaPage: React.FC<AllMediaPageProps> = ({
       retryAttemptRef.current = 0;
       clearTimers();
     }
-    // Only show full skeleton loader if media is completely empty
+    // Only show full skeleton loader if never cached before
     setMedia(prev => {
-      if (prev.length === 0) setIsLoading(true);
+      if (prev.length === 0 && localStorage.getItem(CACHE_KEY) === null) setIsLoading(true);
       return prev;
     });
     setIsLoadError(false);

@@ -43,8 +43,7 @@ export const VideosPage: React.FC<VideosPageProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(() => {
     try {
       const saved = localStorage.getItem(CACHE_KEY);
-      const parsed = saved ? JSON.parse(saved) : [];
-      return parsed.length === 0;
+      return saved === null;
     } catch {
       return true;
     }
@@ -68,7 +67,7 @@ export const VideosPage: React.FC<VideosPageProps> = ({
       clearTimers();
     }
     setVideos(prev => {
-      if (prev.length === 0) setIsLoading(true);
+      if (prev.length === 0 && localStorage.getItem(CACHE_KEY) === null) setIsLoading(true);
       return prev;
     });
     setIsLoadError(false);

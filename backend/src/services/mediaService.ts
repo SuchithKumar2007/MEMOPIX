@@ -25,6 +25,31 @@ export const SUCHITH_FAMILY_IDS = [
   '7e43e689-641d-4514-adec-372cc9f83ed3'  // suchith2007kumar@gmail.com
 ];
 
+export const MEDIA_METADATA_SELECT = {
+  id: true,
+  ownerId: true,
+  folderId: true,
+  fileName: true,
+  originalName: true,
+  mimeType: true,
+  category: true,
+  fileSize: true,
+  fileHash: true,
+  storagePath: true,
+  thumbnailPath: true,
+  width: true,
+  height: true,
+  duration: true,
+  isFavorite: true,
+  isArchived: true,
+  isDeleted: true,
+  deletedAt: true,
+  takenAt: true,
+  cameraModel: true,
+  createdAt: true,
+  updatedAt: true
+};
+
 export function isOwnerOrFamily(ownerId: string, userId: string): boolean {
   if (ownerId === userId) return true;
   if (SUCHITH_FAMILY_IDS.includes(ownerId) && SUCHITH_FAMILY_IDS.includes(userId)) return true;
@@ -269,6 +294,7 @@ export class MediaService {
       prisma.media.count({ where }),
       prisma.media.findMany({
         where,
+        select: MEDIA_METADATA_SELECT,
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit
@@ -418,7 +444,8 @@ export class MediaService {
   static async emptyTrash(userId: string) {
     const targetOwner = SUCHITH_FAMILY_IDS.includes(userId) ? { in: SUCHITH_FAMILY_IDS } : userId;
     const trashedMedia = await prisma.media.findMany({
-      where: { ownerId: targetOwner, isDeleted: true }
+      where: { ownerId: targetOwner, isDeleted: true },
+      select: { id: true, storagePath: true, thumbnailPath: true, fileSize: true, ownerId: true }
     });
 
     let freedBytes = 0;
@@ -455,7 +482,8 @@ export class MediaService {
       where: {
         isDeleted: true,
         deletedAt: { lte: thirtyDaysAgo }
-      }
+      },
+      select: { id: true, storagePath: true, thumbnailPath: true, fileSize: true, ownerId: true }
     });
 
     if (expiredItems.length === 0) return 0;
@@ -492,7 +520,8 @@ export class MediaService {
       where: {
         id: { in: mediaIds },
         ownerId: targetOwner
-      }
+      },
+      select: { id: true, storagePath: true, thumbnailPath: true, fileSize: true, ownerId: true }
     });
 
     const validIds = items.map(i => i.id);
@@ -560,7 +589,8 @@ export class MediaService {
       where: {
         id: { in: mediaIds },
         ownerId: userId
-      }
+      },
+      select: { storagePath: true, originalName: true }
     });
 
     if (items.length === 0) {

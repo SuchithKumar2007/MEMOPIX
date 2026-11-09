@@ -145,7 +145,8 @@ export class PlaylistService {
       where: {
         id: { in: mediaIds },
         ownerId: userId
-      }
+      },
+      select: { id: true }
     });
 
     const existingMediaIds = new Set(playlist.tracks.map(t => t.mediaId));
