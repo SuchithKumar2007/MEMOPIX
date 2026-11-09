@@ -18,7 +18,7 @@ interface PhotosPageProps {
   reloadTrigger: number;
 }
 
-const CACHE_KEY = 'memopix_cache_photos_v2';
+const CACHE_KEY = 'memopix_cache_photos_v3';
 const AUTO_RETRY_DELAYS = [3000, 5000, 8000, 10000, 15000];
 
 export const PhotosPage: React.FC<PhotosPageProps> = ({

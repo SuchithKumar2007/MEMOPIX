@@ -366,7 +366,11 @@ export class MediaController {
 
       res.setHeader('Content-Type', mimeType);
       res.setHeader('Accept-Ranges', 'bytes');
-      res.setHeader('Cache-Control', 'public, max-age=604800, stale-while-revalidate=86400');
+      res.setHeader('Cache-Control', 'no-cache, no-transform');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Range, Authorization, Content-Type, Origin, Accept');
+      res.setHeader('Access-Control-Expose-Headers', 'Content-Range, Accept-Ranges, Content-Length, Content-Type');
 
       const etag = `W/"${media.id}-${fileSize}-${Math.floor(stat.mtimeMs)}"`;
       res.setHeader('ETag', etag);
@@ -404,6 +408,7 @@ export class MediaController {
           'Accept-Ranges': 'bytes',
           'Content-Length': chunkSize,
           'Content-Type': mimeType,
+          'Cache-Control': 'no-cache, no-transform',
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
           'Access-Control-Allow-Headers': 'Range, Authorization, Content-Type, Origin, Accept',
@@ -413,6 +418,9 @@ export class MediaController {
         fileStream.pipe(res);
       } else {
         res.setHeader('Content-Length', fileSize);
+        res.setHeader('Cache-Control', 'no-cache, no-transform');
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Expose-Headers', 'Content-Range, Accept-Ranges, Content-Length, Content-Type');
         fs.createReadStream(filePath).pipe(res);
       }
     } catch (err) {

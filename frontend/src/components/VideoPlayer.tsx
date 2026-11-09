@@ -21,7 +21,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { MediaItem } from '../types';
-import { resolveMediaUrl } from '../services/api';
+import { resolveMediaUrl, mediaApi } from '../services/api';
 import { downloadMediaFile } from '../utils/download';
 import { formatDuration } from '../utils/formatters';
 
@@ -55,13 +55,15 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [renameValue, setRenameValue] = useState('');
   const [isBuffering, setIsBuffering] = useState(false);
   const [videoError, setVideoError] = useState(false);
+  const [videoUrl, setVideoUrl] = useState<string>(() => resolveMediaUrl(media?.streamUrl));
 
   useEffect(() => {
     setIsRenaming(false);
     setRenameValue('');
     setVideoError(false);
     setIsBuffering(false);
-  }, [media?.id]);
+    setVideoUrl(resolveMediaUrl(media?.streamUrl));
+  }, [media?.id, media?.streamUrl]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -286,18 +288,30 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             <div className="flex items-center gap-2 mt-1">
               <button
                 type="button"
-                onClick={() => {
+                onClick={async () => {
                   setVideoError(false);
                   setIsBuffering(true);
-                  if (videoRef.current) {
-                    videoRef.current.load();
-                    videoRef.current.play().then(() => {
-                      setIsPlaying(true);
-                      setIsBuffering(false);
-                    }).catch(() => {
-                      setIsBuffering(false);
-                    });
+                  if (media?.id) {
+                    try {
+                      const res = await mediaApi.getById(media.id);
+                      if (res?.success && res.data?.streamUrl) {
+                        setVideoUrl(resolveMediaUrl(res.data.streamUrl));
+                      }
+                    } catch (e) {
+                      console.warn('Retry stream token refresh warning:', e);
+                    }
                   }
+                  setTimeout(() => {
+                    if (videoRef.current) {
+                      videoRef.current.load();
+                      videoRef.current.play().then(() => {
+                        setIsPlaying(true);
+                        setIsBuffering(false);
+                      }).catch(() => {
+                        setIsBuffering(false);
+                      });
+                    }
+                  }, 150);
                 }}
                 className="flex items-center gap-1.5 px-3.5 py-2 bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold rounded-xl transition-all shadow-md active:scale-95"
               >
@@ -318,9 +332,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
         <video
           ref={videoRef}
-          src={resolveMediaUrl(media.streamUrl)}
-          crossOrigin="anonymous"
-          preload="metadata"
+          src={videoUrl || resolveMediaUrl(media.streamUrl)}
+          preload="auto"
           playsInline
           onWaiting={() => setIsBuffering(true)}
           onPlaying={() => {

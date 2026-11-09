@@ -18,7 +18,7 @@ interface VideosPageProps {
   reloadTrigger: number;
 }
 
-const CACHE_KEY = 'memopix_cache_videos_v2';
+const CACHE_KEY = 'memopix_cache_videos_v3';
 const AUTO_RETRY_DELAYS = [3000, 5000, 8000, 10000, 15000];
 
 export const VideosPage: React.FC<VideosPageProps> = ({
@@ -66,6 +66,7 @@ export const VideosPage: React.FC<VideosPageProps> = ({
       retryAttemptRef.current = 0;
       clearTimers();
     }
+    // Only show skeleton on first-ever visit with no cache at all
     setVideos(prev => {
       if (prev.length === 0 && localStorage.getItem(CACHE_KEY) === null) setIsLoading(true);
       return prev;
@@ -73,6 +74,7 @@ export const VideosPage: React.FC<VideosPageProps> = ({
     setIsLoadError(false);
     setRetryIn(null);
     try {
+      // Always fetch fresh data from backend (get fresh signed tokens)
       const res = await mediaApi.list({
         view: 'videos',
         search: searchQuery || undefined,
@@ -83,6 +85,7 @@ export const VideosPage: React.FC<VideosPageProps> = ({
         setVideos(items);
         if (!searchQuery) {
           try {
+            // Store with fresh tokens for next offline view
             localStorage.setItem(CACHE_KEY, JSON.stringify(items));
           } catch {}
         }

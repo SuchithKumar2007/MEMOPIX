@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useRef, useEffect, useCallback } from 'react';
 import { MediaItem } from '../types';
-import { resolveMediaUrl } from '../services/api';
+import { resolveMediaUrl, mediaApi } from '../services/api';
 
 interface MusicPlayerContextType {
   currentTrack: MediaItem | null;
@@ -92,7 +92,6 @@ export const MusicPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   useEffect(() => {
     const audio = new Audio();
     audio.preload = 'auto';
-    audio.crossOrigin = 'anonymous';
     audioRef.current = audio;
 
     const onTimeUpdate = () => setCurrentTime(audio.currentTime);
@@ -138,9 +137,24 @@ export const MusicPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       }
     };
     const onPause = () => setIsPlaying(false);
-    const onError = () => {
+    let autoRefreshed = false;
+    const onError = async () => {
       const err = audio.error;
       console.warn('[MusicPlayer] Audio error:', err ? `code=${err.code}: ${err.message}` : 'unknown');
+      const track = currentTrackRef.current;
+      if (!autoRefreshed && track?.id) {
+        autoRefreshed = true;
+        try {
+          const fresh = await mediaApi.getById(track.id);
+          if (fresh?.success && fresh.data?.streamUrl) {
+            const freshUrl = resolveMediaUrl(fresh.data.streamUrl);
+            audio.src = freshUrl;
+            audio.load();
+            await audio.play();
+            return;
+          }
+        } catch {}
+      }
       setIsBuffering(false);
       setIsPlaying(false);
       setPlaybackError('Track file is unavailable or waking up on cloud storage. Please retry or re-upload.');
@@ -259,7 +273,6 @@ export const MusicPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     try {
       audioRef.current.pause();
       audioRef.current.src = streamUrl;
-      audioRef.current.crossOrigin = 'anonymous';
       audioRef.current.volume = isMuted ? 0 : volume;
       audioRef.current.load();
 
@@ -300,7 +313,6 @@ export const MusicPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       // Re-attach src if audio lost its source (e.g. page reload)
       if (!audioRef.current.src || audioRef.current.src === window.location.href) {
         audioRef.current.src = resolveMediaUrl(currentTrack.streamUrl);
-        audioRef.current.crossOrigin = 'anonymous';
         audioRef.current.load();
       }
       setIsBuffering(true);
