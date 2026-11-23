@@ -7,7 +7,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://colleges-compete-cleaning-magnitude.trycloudflare.com/api/$1"
+      "destination": "https://firm-indicating-julie-coding.trycloudflare.com/api/$1"
     },
     {
       "source": "/(.*)",

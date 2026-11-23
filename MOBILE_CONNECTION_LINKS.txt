@@ -13,7 +13,7 @@
 
 [3] ON YOUR MOBILE PHONE (Mobile Data / 4G / 5G / Remote):
     - Open Chrome or Safari on your phone and go to:
-      ==> https://colleges-compete-cleaning-magnitude.trycloudflare.com
+      ==> https://firm-indicating-julie-coding.trycloudflare.com
     - Or via Vercel:
       ==> https://memopix-tau.vercel.app
 
