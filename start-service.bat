@@ -11,13 +11,13 @@ ping 127.0.0.1 -n 2 >nul
 
 :: 2. Start backend server
 cd /d "%BACKEND%"
-start "MEMOPIX-Backend" /B node dist\server.js
+start "MEMOPIX-Backend" /MIN node dist\server.js
 ping 127.0.0.1 -n 4 >nul
 
 :: 3. Start Cloudflare Tunnel
 cd /d "%PROJECT%"
 del /f /q "%LOGFILE%" >nul 2>&1
-start "MEMOPIX-Tunnel" /B cloudflared.exe tunnel --url http://localhost:5000 --no-autoupdate > "%LOGFILE%" 2>&1
+start "MEMOPIX-Tunnel" /MIN cloudflared.exe tunnel --url http://localhost:5000 --no-autoupdate > "%LOGFILE%" 2>&1
 
 :: 4. Wait for tunnel URL
 ping 127.0.0.1 -n 9 >nul

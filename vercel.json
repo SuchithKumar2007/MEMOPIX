@@ -7,7 +7,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://firm-indicating-julie-coding.trycloudflare.com/api/$1"
+      "destination": "https://flower-difficulty-sell-languages.trycloudflare.com/api/$1"
     },
     {
       "source": "/(.*)",
