@@ -70,24 +70,44 @@ export const discoverBackend = async (): Promise<void> => {
       );
     if (!isNativeApp) return;
 
-    // Fast check: Are we on the same home WiFi as the laptop? (192.168.1.3)
+    // 1. Fetch current backend info (both LAN IP and Cloudflare tunnel URL) via Vercel proxy
     try {
-      const wifiProbe = await fetch('http://192.168.1.3:5000/api/health', { signal: AbortSignal.timeout(1500) });
-      if (wifiProbe.ok) {
-        localStorage.setItem('memopix_tunnel_url', 'http://192.168.1.3:5000');
-        console.log('[MEMOPIX] Connected to Laptop directly over WiFi');
-        return;
+      const res = await fetch('https://memopix-tau.vercel.app/api/tunnel-url', { signal: AbortSignal.timeout(4000) });
+      if (res.ok) {
+        const data = await res.json();
+        
+        // If LAN URL is provided, test if mobile is on the same local Wi-Fi (ZERO internet bandwidth!):
+        if (data?.lanUrl) {
+          try {
+            const probe = await fetch(`${data.lanUrl}/api/health`, { signal: AbortSignal.timeout(1500) });
+            if (probe.ok) {
+              localStorage.setItem('memopix_tunnel_url', data.lanUrl);
+              console.log('[MEMOPIX] Connected to Laptop directly over Local Wi-Fi (0 internet bandwidth):', data.lanUrl);
+              return;
+            }
+          } catch {}
+        }
+
+        // If outside home Wi-Fi, use Cloudflare Tunnel URL:
+        if (data?.tunnelUrl) {
+          localStorage.setItem('memopix_tunnel_url', data.tunnelUrl);
+          console.log('[MEMOPIX] Connected via Cloudflare Tunnel:', data.tunnelUrl);
+          return;
+        }
       }
     } catch {}
 
-    // Outside home WiFi: Fetch current Cloudflare tunnel URL via Vercel
-    const res = await fetch('https://memopix-tau.vercel.app/api/tunnel-url', { signal: AbortSignal.timeout(6000) });
-    if (res.ok) {
-      const data = await res.json();
-      if (data?.tunnelUrl) {
-        localStorage.setItem('memopix_tunnel_url', data.tunnelUrl);
-        console.log('[MEMOPIX] Connected via Cloudflare Tunnel:', data.tunnelUrl);
-      }
+    // Fallback: direct check on current and common local LAN IPs
+    const localIps = ['192.168.29.61', '192.168.1.3'];
+    for (const ip of localIps) {
+      try {
+        const probe = await fetch(`http://${ip}:5000/api/health`, { signal: AbortSignal.timeout(1000) });
+        if (probe.ok) {
+          localStorage.setItem('memopix_tunnel_url', `http://${ip}:5000`);
+          console.log(`[MEMOPIX] Connected directly over Local Wi-Fi (${ip})`);
+          return;
+        }
+      } catch {}
     }
   } catch {
     // Silent fallback to Vercel proxy

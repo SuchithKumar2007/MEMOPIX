@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import express from 'express';
+import os from 'os';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -170,9 +171,28 @@ setInterval(async () => {
 // Current public tunnel URL (set at startup by start script)
 let currentTunnelUrl: string = process.env.TUNNEL_URL || '';
 
-// Endpoint so mobile APK can discover current tunnel URL
+function getLocalNetworkIp(): string {
+  try {
+    const interfaces = os.networkInterfaces();
+    for (const name of Object.keys(interfaces)) {
+      for (const iface of interfaces[name] || []) {
+        if (iface.family === 'IPv4' && !iface.internal) {
+          return iface.address;
+        }
+      }
+    }
+  } catch {}
+  return '127.0.0.1';
+}
+
+// Endpoint so mobile APK can discover current tunnel URL and LAN IP
 app.get('/api/tunnel-url', (_req, res) => {
-  res.json({ tunnelUrl: currentTunnelUrl || null });
+  const lanIp = getLocalNetworkIp();
+  res.json({
+    tunnelUrl: currentTunnelUrl || null,
+    lanIp: lanIp,
+    lanUrl: `http://${lanIp}:5000`
+  });
 });
 
 // Allow the start script to update tunnel URL at runtime
