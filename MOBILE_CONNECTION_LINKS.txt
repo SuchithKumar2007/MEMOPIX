@@ -6,14 +6,16 @@
     - Simply double-click "MEMOPIX.exe" or "MEMOPIX.bat"
     - Or open in browser: http://localhost:5000
 
-[2] ON YOUR MOBILE PHONE (Home Wi-Fi — Fastest):
+[2] ON YOUR MOBILE PHONE (Home Wi-Fi — ZERO INTERNET DATA USED):
     - Connect your phone to your home Wi-Fi
     - Open Chrome or Safari and go to:
-      ==> http://192.168.1.3:5000
+      ==> http://192.168.29.61:5000
 
 [3] ON YOUR MOBILE PHONE (Mobile Data / 4G / 5G / Remote):
     - Open Chrome or Safari on your phone and go to:
-      ==> https://chevy-screw-monitors-gone.trycloudflare.com
+      ==> https://colleges-compete-cleaning-magnitude.trycloudflare.com
+    - Or via Vercel:
+      ==> https://memopix-tau.vercel.app
 
 [4] HOW TO INSTALL AS A NATIVE APP ON YOUR PHONE:
     - Open either mobile link above in Google Chrome on your phone
